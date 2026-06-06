@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "description": "Hand-checked games for Pass 2 Step 1 (PBP ingestion spike).",
+  "games": [
+    {
+      "label": "harden_2017_sas_g6",
+      "game_id": "0041600236",
+      "game_id_short": 41600236,
+      "date": "2017-05-11",
+      "season": "2016-17",
+      "matchup": "HOU vs. SAS",
+      "focus_player": "James Harden",
+      "focus_player_id": 201935,
+      "expected": {
+        "event_a_cold_start": true,
+        "notes": "Harden 2-11 FG, 10 pts. Event A (1-for-5 cold start) should fire."
+      }
+    },
+    {
+      "label": "lebron_2016_gsw_g5",
+      "game_id": "0041500405",
+      "game_id_short": 41500405,
+      "date": "2016-06-13",
+      "season": "2015-16",
+      "matchup": "CLE @ GSW",
+      "focus_player": "LeBron James",
+      "focus_player_id": 2544,
+      "expected": {
+        "event_a_cold_start": false,
+        "notes": "LeBron 16-30 FG, 41 pts. No adversity event expected unless he started cold."
+      }
+    },
+    {
+      "label": "harden_2023_bos_g7",
+      "game_id": "0042200217",
+      "game_id_short": 42200217,
+      "date": "2023-05-14",
+      "season": "2022-23",
+      "matchup": "PHI @ BOS",
+      "focus_player": "James Harden",
+      "focus_player_id": 201935,
+      "expected": {
+        "event_a_cold_start": true,
+        "notes": "Harden 3-11 FG, 9 pts. Event A should fire."
+      }
+    }
+  ]
+}
