@@ -112,6 +112,22 @@ def fetch_starters(client: NBAStatsClient, game_id: str) -> dict[str, list[int]]
     return starters
 
 
+def fetch_team_oreb_targets(client: NBAStatsClient, game_id: str) -> dict[str, int]:
+    resp = client._make_request(
+        "boxscoretraditionalv2",
+        {
+            "GameID": normalize_game_id(game_id),
+            "StartPeriod": 0,
+            "EndPeriod": 10,
+            "RangeType": 0,
+            "StartRange": 0,
+            "EndRange": 0,
+        },
+    )
+    teams = result_set_to_records(resp, 1)
+    return {row["TEAM_ABBREVIATION"]: int(row["OREB"]) for row in teams}
+
+
 def build_name_maps(actions: list[dict[str, Any]]) -> dict[str, int]:
     name_to_id: dict[str, int] = {}
     for action in actions:
@@ -185,12 +201,14 @@ def build_possessions(
     team_ids, home_team_id, _ = infer_team_metadata(actions)
     client = client or create_client()
     starters = starters or fetch_starters(client, game_id)
+    oreb_targets = fetch_team_oreb_targets(client, game_id)
     name_to_id = build_name_maps(actions)
     player_names = {pid: name for name, pid in name_to_id.items()}
     lineups = LineupTracker.from_starters(starters, team_ids, home_team_id, player_names)
 
     possessions: list[dict[str, Any]] = []
     possession_idx = 0
+    detected_oreb: dict[str, int] = {}
 
     home_score = 0
     away_score = 0
@@ -198,6 +216,7 @@ def build_possessions(
     live_shot: LiveShotAttempt | None = None
     ft_active = False
     ft_shooter_id: int | None = None
+    ft_pending_rebound = False
     offense_tricode: str | None = None
 
     def update_score(action: dict[str, Any]) -> None:
@@ -210,7 +229,7 @@ def build_possessions(
         return lineups.away_tricode if tricode == lineups.home_tricode else lineups.home_tricode
 
     def open_new_possession(period: int, clock: str, offense: str) -> None:
-        nonlocal open_possession, offense_tricode, live_shot, ft_active, ft_shooter_id
+        nonlocal open_possession, offense_tricode, live_shot, ft_active, ft_shooter_id, ft_pending_rebound
         offense_tricode = offense
         open_possession = OpenPossession(
             period=period,
@@ -224,6 +243,7 @@ def build_possessions(
         live_shot = None
         ft_active = False
         ft_shooter_id = None
+        ft_pending_rebound = False
 
     def finalize_possession(
         terminal_player_id: int | None,
@@ -234,7 +254,7 @@ def build_possessions(
         shot_distance: float | None = None,
         zone: str | None = None,
     ) -> None:
-        nonlocal possession_idx, open_possession, live_shot, ft_active, ft_shooter_id
+        nonlocal possession_idx, open_possession, live_shot, ft_active, ft_shooter_id, ft_pending_rebound
         if open_possession is None:
             return
         possessions.append(
@@ -259,6 +279,7 @@ def build_possessions(
         live_shot = None
         ft_active = False
         ft_shooter_id = None
+        ft_pending_rebound = False
 
     def end_possession_and_flip(
         offense: str,
@@ -373,26 +394,108 @@ def build_possessions(
             )
             continue
 
-        if action_type == "Rebound" and live_shot is not None:
-            offensive = rebound_is_offensive(description)
-            if offensive is None:
-                offensive = team == live_shot.offense_tricode
-            if offensive:
+        if action_type == "Rebound":
+            # Bug 3: Skip dead-ball "Normal Rebound" between FTs — these are
+            # informational team rebound stats, not live-ball rebounds.
+            if sub_type == "Normal Rebound":
                 continue
-            finalize_possession(
-                terminal_player_id=live_shot.shooter_id,
-                terminal_event_type="fga_miss",
-                clock=clock,
-                shot_distance=live_shot.shot_distance,
-                zone=live_shot.shot_zone,
-            )
-            open_new_possession(period, clock, team)
+
+            # Bug 2 (part 2): Rebound after a missed last FT.  The FT handler
+            # re-opened a temporary possession for the FT-shooting team with
+            # ft_pending_rebound = True.  Resolve the flip here.
+            if live_shot is None and ft_pending_rebound and open_possession is not None:
+                offensive = team == open_possession.offense_tricode
+                if offensive:
+                    target = oreb_targets.get(team, 0)
+                    current = detected_oreb.get(team, 0)
+                    if current >= target:
+                        offensive = False
+
+                if offensive:
+                    # OREB after missed last FT — offense keeps the ball.
+                    # The temporary possession becomes the real possession.
+                    detected_oreb[team] = detected_oreb.get(team, 0) + 1
+                    ft_pending_rebound = False
+                    continue
+                else:
+                    # DREB after missed last FT — defense gets the ball.
+                    # Discard the temporary possession (don't write a row)
+                    # and open a real one for the rebounding team.
+                    open_possession = None
+                    ft_pending_rebound = False
+                    open_new_possession(period, clock, team)
+                    continue
+
+            if live_shot is not None:
+                # Filter out dead-ball end-of-period team rebounds.
+                is_team_rebound = not action.get("teamTricode") and player_id == 0
+                if is_team_rebound:
+                    # Check if end-of-period dead-ball rebound
+                    is_dead_ball = False
+                    for la in actions[idx + 1 : idx + 4]:
+                        la_type = la.get("actionType") or ""
+                        if la_type in ("Substitution", "Instant Replay", ""):
+                            continue
+                        if la_type == "period":
+                            is_dead_ball = True
+                        break
+                    if is_dead_ball:
+                        live_shot = None
+                        continue
+
+                # OREB if same-team, capped by box score OREB targets.
+                offensive = team == live_shot.offense_tricode
+                if offensive:
+                    target = oreb_targets.get(team, 0)
+                    current = detected_oreb.get(team, 0)
+                    if current >= target:
+                        offensive = False
+
+                if offensive:
+                    detected_oreb[team] = detected_oreb.get(team, 0) + 1
+                    continue
+                finalize_possession(
+                    terminal_player_id=live_shot.shooter_id,
+                    terminal_event_type="fga_miss",
+                    clock=clock,
+                    shot_distance=live_shot.shot_distance,
+                    zone=live_shot.shot_zone,
+                )
+                open_new_possession(period, clock, team)
+                continue
             continue
 
         if action_type == "Turnover":
+            # Skip companion rows that follow offensive fouls — the
+            # Foul/Offensive handler already closed the possession.
+            # Check that the immediately preceding non-sub action was an
+            # offensive foul (not a flagrant, which needs different handling).
+            if sub_type in ("Foul", "Offensive Foul Turnover"):
+                # Walk backward to find the paired foul action
+                is_companion = False
+                for prev_action in reversed(actions[:idx]):
+                    prev_type = prev_action.get("actionType") or ""
+                    if prev_type in ("Substitution", "Timeout", "Instant Replay", ""):
+                        continue
+                    if prev_type == "Foul" and (prev_action.get("subType") or "") in (
+                        "Offensive",
+                        "Offensive Charge",
+                    ):
+                        is_companion = True
+                    break
+                if is_companion:
+                    continue
             if live_shot is not None:
                 live_shot = None
             end_possession_and_flip(team, player_id, "tov", clock, period)
+            continue
+
+        if action_type == "Foul" and sub_type in ("Offensive", "Offensive Charge"):
+            if live_shot is not None:
+                live_shot = None
+            # Offensive foul is a turnover — end possession and flip.
+            fouling_team = team
+            end_possession_and_flip(fouling_team, player_id, "tov", clock, period)
             continue
 
         if action_type == "Foul" and "Shooting" in sub_type:
@@ -400,7 +503,7 @@ def build_possessions(
             ft_shooter_id = live_shot.shooter_id if live_shot else None
             continue
 
-        if action_type == "Foul" and not ft_active and sub_type in ("Personal", "Loose Ball"):
+        if action_type == "Foul" and not ft_active and sub_type in ("Personal", "Loose Ball", "Personal Take"):
             if has_upcoming_free_throw(actions, idx, team_tricode=team):
                 ft_active = True
                 ft_shooter_id = None
@@ -419,13 +522,29 @@ def build_possessions(
             if is_last_free_throw(sub_type):
                 offense = open_possession.offense_tricode if open_possession else team
                 terminal_id = ft_shooter_id or live_shot.shooter_id if live_shot else ft_shooter_id
-                end_possession_and_flip(
-                    offense,
-                    terminal_id,
-                    "ft_trip",
-                    clock,
-                    period,
-                )
+                ft_was_missed = "MISS" in description
+                if ft_was_missed:
+                    # Bug 2: Missed last FT — do NOT flip immediately.
+                    # Finalize this possession and re-open for the same team
+                    # so the rebound handler can resolve the actual flip.
+                    finalize_possession(
+                        terminal_id,
+                        "ft_trip",
+                        clock,
+                    )
+                    # Re-open a temporary possession for the FT-shooting team.
+                    # The rebound will determine who actually gets the ball.
+                    open_new_possession(period, clock, offense)
+                    ft_pending_rebound = True
+                else:
+                    # Made last FT — standard flip to other team.
+                    end_possession_and_flip(
+                        offense,
+                        terminal_id,
+                        "ft_trip",
+                        clock,
+                        period,
+                    )
             continue
 
         if action_type == "Violation" and "Goaltend" in description:
@@ -434,6 +553,11 @@ def build_possessions(
 
     if not possessions:
         raise ValueError(f"No possessions parsed for game {game_id}")
+
+    logger.info("Online budget calibration summary for game %s:", game_id)
+    for team_abbr, target in oreb_targets.items():
+        actual_det = detected_oreb.get(team_abbr, 0)
+        logger.info("  %s: target OREB = %d, detected OREB = %d", team_abbr, target, actual_det)
 
     df = pd.DataFrame(possessions)
     return df

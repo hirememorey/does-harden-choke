@@ -101,6 +101,11 @@ def parse_tip_recipient(description: str) -> str | None:
 
 
 def rebound_is_offensive(description: str) -> bool | None:
+    """Deprecated heuristic — compares cumulative Off vs Def counts.
+
+    This is unreliable because cumulative counts don't identify the current
+    rebound's direction.  Use ``rebound_is_offensive_delta`` instead.
+    """
     match = re.search(r"Off:(\d+)\s+Def:(\d+)", description or "")
     if not match:
         return None
@@ -112,8 +117,19 @@ def rebound_is_offensive(description: str) -> bool | None:
     return None
 
 
+def parse_rebound_off_def(description: str) -> tuple[int, int] | None:
+    """Extract (Off, Def) cumulative counts from a rebound description."""
+    match = re.search(r"Off:(\d+)\s+Def:(\d+)", description or "")
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
 def is_last_free_throw(sub_type: str | None) -> bool:
     sub = (sub_type or "").lower().replace("free throw", "").strip()
+    # Strip qualifier words so "Flagrant 2 of 2" → "2 of 2"
+    for qualifier in ("flagrant", "clear path", "technical"):
+        sub = sub.replace(qualifier, "").strip()
     if " of " not in sub:
         return False
     num, den = [part.strip() for part in sub.split(" of ", 1)]
