@@ -11,6 +11,7 @@ This guide gets a new contributor from clone → running analyses → understand
 Research project testing whether James Harden's playoff reputation reflects a real variance shift — and, more generally, whether star players **contract**, **force**, or **redistribute** under adversity.
 
 - **Pass 1 (game level):** Complete. Screens A–E plus June 2026 extensions (opponent adjustment, RS retention baselines, refined mechanism taxonomy).
+- **Causal chain (game level):** Step 0 complete — team game logs scraped and validated (`scrape_team_logs.py`). Step 1 (join to `analysis_table.csv`) is next. See [`causal_chain_plan.md`](causal_chain_plan.md).
 - **Pass 2 (possession level):** Parser validated on fixture games; event frequency estimated; full pipeline not scaled to all ~270 cold-start events.
 
 **Current thesis (one sentence):**
@@ -32,6 +33,8 @@ does-harden-choke/
 │   ├── screen_a.py … screen_e.py   # Pass 1 screens
 │   ├── screen_a_adj.py       # Opponent-adjusted floor rates (extension)
 │   ├── rs_retention_baseline.py    # RS vs PO retention baselines (extension)
+│   ├── scrape_team_logs.py   # Causal chain Step 0 — team ORtg / POSS
+│   ├── validate_team_logs.py # Causal chain Step 0 validation gates
 │   ├── visualize.py
 │   └── pass2/
 │       ├── ingest_pbp.py     # Fetch play-by-play JSON
@@ -104,7 +107,24 @@ make screen-a-adj        # opponent-adjusted floor rates
 make retention           # RS vs PO FGA/FTA/min retention baselines
 ```
 
-### 4. Pass 2 (partial)
+### 4. Causal chain — Step 0 (June 2026, complete)
+
+Requires player raw CSVs from step 1. Fetches team-level `OFF_RATING`, `POSS`, `WL` for every cohort game.
+
+```bash
+make scrape-team-logs    # ~50 min; --resume checkpoints every 10 team-seasons
+make validate-team-logs  # must pass before Step 1
+```
+
+Smoke test (5 team-seasons in 2023-24):
+
+```bash
+make smoke-team-logs
+```
+
+**Next:** implement Step 1 per [`causal_chain_plan.md`](causal_chain_plan.md) — join `team_game_logs.csv` to `analysis_table.csv` on `(game_id, team_id)` with normalized game IDs.
+
+### 5. Pass 2 (partial)
 
 ```bash
 make scrape-pbp          # 3 validation games
@@ -182,7 +202,7 @@ See [`findings.md`](findings.md) for full tables and interpretation.
 
 These block a "who to avoid in the playoffs" scouting claim:
 
-1. **Causal chain** — contraction → team ORtg → wins (needs score-margin control)
+1. **Causal chain Step 1+** — join floor flags to team ORtg; test contraction → wins ([`causal_chain_plan.md`](causal_chain_plan.md))
 2. **Minutes decontamination at possession level** — on-floor contraction vs. benching
 3. **Out-of-sample validation** — train profile on career first half, test second half
 4. **Pass 2 at scale** — same-game pre-event baselines on full event set
@@ -204,12 +224,14 @@ Full list: [`open_questions.md` § Remaining work](open_questions.md).
 | `data/processed/screen_e_results.csv` | `screen_e.py` |
 | `data/processed/event_frequency_estimates.csv` | `pass2/event_frequency.py` |
 | `data/processed/pass2/possessions_*.csv` | `pass2/possessions.py` |
+| `data/raw/team_game_logs.csv` | `scrape_team_logs.py` |
+| `data/processed/causal_analysis_table.csv` | `join_causal_table.py` *(not yet written)* |
 
 ---
 
 ## Suggested next tasks (priority order)
 
-1. **Causal chain analysis** — team ORtg and win rate in contraction vs. non-contraction games
+1. **Causal chain Step 1** — `join_causal_table.py`: merge `analysis_table.csv` + `team_game_logs.csv`
 2. **Pass 2 at scale** — run pre-event baseline matching on ~273 events
 3. **Out-of-sample validation** — split career halves
 4. **Expand cohort** — Embiid, Butler, Mitchell
@@ -235,3 +257,4 @@ Full list: [`open_questions.md` § Remaining work](open_questions.md).
 | Original Pass 1 design | `pass1_plan.md` |
 | Pass 2 event definitions | `pass2_design_spec.md` |
 | Parser validation | `pass2_possession_parser_status.md` |
+| Causal chain implementation | `causal_chain_plan.md` |

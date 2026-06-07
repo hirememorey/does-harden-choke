@@ -56,6 +56,15 @@ test-client:
 smoke-scrape:
 	$(PYTHON) src/scrape.py --players "James Harden" --seasons 2023-24
 
+scrape-team-logs:
+	$(PYTHON) src/scrape_team_logs.py --resume
+
+validate-team-logs:
+	$(PYTHON) src/validate_team_logs.py
+
+smoke-team-logs:
+	$(PYTHON) -c "from src.scrape_team_logs import collect_team_season_keys, scrape_team_logs; keys=collect_team_season_keys(); scrape_team_logs(keys[keys['season']=='2023-24'].head(5), force=True)"
+
 all: scrape features screen-a screen-b screen-c visualize
 
 clean:

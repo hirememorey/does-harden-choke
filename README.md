@@ -2,7 +2,7 @@
 
 Research project asking whether star players **contract**, **force**, or **redistribute** under playoff adversity — measured first at the game level (Pass 1), then at the possession level (Pass 2).
 
-**Status (June 2026):** Pass 1 complete and extended (18 players, opponent adjustment, RS retention baselines). Pass 2 possession parser validated on fixture games; event-frequency estimated; full Pass 2 pipeline not yet scaled.
+**Status (June 2026):** Pass 1 complete and extended (18 players, opponent adjustment, RS retention baselines). **Causal chain Step 0 complete** — team ORtg logs scraped and validated; Step 1 (join to player floor games) is next ([`causal_chain_plan.md`](documents/development/causal_chain_plan.md)). Pass 2 possession parser validated on fixture games; full Pass 2 pipeline not yet scaled.
 
 **Start here:** [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) to onboard and run the pipeline. [`documents/development/findings.md`](documents/development/findings.md) for what we learned. [`documents/development/open_questions.md`](documents/development/open_questions.md) for resolved decisions and remaining gaps.
 
@@ -17,6 +17,7 @@ Research project asking whether star players **contract**, **force**, or **redis
 | [`documents/development/pass2_research_design.md`](documents/development/pass2_research_design.md) | Pass 2 conceptual framing |
 | [`documents/development/pass2_design_spec.md`](documents/development/pass2_design_spec.md) | Pass 2 technical spec (events, baselines, validation gates) |
 | [`documents/development/pass2_possession_parser_status.md`](documents/development/pass2_possession_parser_status.md) | Parser validation status and how to reproduce |
+| [`documents/development/causal_chain_plan.md`](documents/development/causal_chain_plan.md) | **Causal chain** — Step 0 done; Steps 1–4 spec for contraction → ORtg → wins |
 
 Root level is **runtime** (Makefile, `config.py`, `src/`). `documents/development/` is **research context**.
 
@@ -58,6 +59,15 @@ make screen-e            # mechanism taxonomy (contractor/forcer/mixed)
 
 Or `make all` after scrape (screens A–C + visualize). Smoke test: `make smoke-scrape` (Harden 2023-24 only).
 
+## Causal chain pipeline (Step 0 complete)
+
+```bash
+make scrape-team-logs      # → data/raw/team_game_logs.csv (~50 min; resumes if interrupted)
+make validate-team-logs    # join coverage + ORtg sanity gates
+```
+
+Step 1 (`join_causal_table.py`) not yet implemented — see [`causal_chain_plan.md`](documents/development/causal_chain_plan.md).
+
 ## Pass 2 pipeline (partial)
 
 ```bash
@@ -90,7 +100,7 @@ Validation fixture (tracked in git): `data/pass2_validation_games.json`
 
 See **Remaining work** in [`open_questions.md`](documents/development/open_questions.md). Priority order:
 
-1. **Causal chain** — contraction → team ORtg → win rate (game-state controlled)
+1. **Causal chain Step 1** — join floor games to team ORtg; then test contraction → wins ([`causal_chain_plan.md`](documents/development/causal_chain_plan.md))
 2. **Pass 2 at scale** — same-game pre-event baselines on ~270 combined cold-start events
 3. **Out-of-sample validation** — train profile on first half of career, test on second half
 4. **Expand cohort** — Embiid, Butler, Mitchell for contractor/forcer taxonomy robustness
@@ -110,3 +120,5 @@ Everything under `data/` is gitignored **except** `data/pass2_validation_games.j
 | `data/processed/screen_e_results.csv` | `screen_e.py` |
 | `data/processed/event_frequency_estimates.csv` | `pass2/event_frequency.py` |
 | `data/processed/pass2/possessions_*.csv` | `pass2/possessions.py` |
+| `data/raw/team_game_logs.csv` | `scrape_team_logs.py` |
+| `data/processed/causal_analysis_table.csv` | `join_causal_table.py` *(planned)* |

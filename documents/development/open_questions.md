@@ -121,7 +121,9 @@ These block the "who to avoid in the playoffs" practical claim:
 
 ### A. Causal chain to team outcomes
 
-Does contraction → team ORtg drop → lost games? Need score-margin control at time of contraction, not just game-level floor flag.
+**Step 0 complete (June 2026).** Team game logs with `OFF_RATING`, `POSS`, `WL` fetched for all cohort games; validation passed (100% join coverage, ORtg sanity OK). See [`causal_chain_plan.md`](causal_chain_plan.md).
+
+**Still open:** Does contraction → team ORtg drop → lost games? Step 1 (join player floor flags to team outcomes) and Steps 2–3 (descriptive + regression with score-margin control) not yet implemented.
 
 ### B. Minutes decontamination at possession level
 
@@ -158,3 +160,5 @@ Embiid, Butler, Mitchell, Booker — test whether PG/Harden opponent-independent
 | Jun 2026 | Kobe reclassified (forcer with rim abandonment, not shrinker) |
 | Jun 2026 | Thesis reframed: failure-mode taxonomy + opponent independence |
 | Jun 2026 | `DEVELOPER.md` added; documentation sweep for handoff |
+| Jun 2026 | Causal chain Step 0: `scrape_team_logs.py` + `validate_team_logs.py`; 19,717 team-game rows; 100% join coverage |
+| Jun 2026 | `causal_chain_plan.md` added; Step 1 (`join_causal_table.py`) is next |

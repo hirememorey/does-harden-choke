@@ -244,6 +244,7 @@ class NBAStatsClient:
         team_id: int,
         season: str,
         season_type: str = "Playoffs",
+        measure_type: str = "Base",
     ) -> Dict[str, Any]:
         return self._make_request(
             "teamgamelogs",
@@ -254,7 +255,7 @@ class NBAStatsClient:
                 "LastNGames": "0",
                 "LeagueID": "00",
                 "Location": "",
-                "MeasureType": "Base",
+                "MeasureType": measure_type,
                 "Month": "0",
                 "OpponentTeamID": "0",
                 "Outcome": "",

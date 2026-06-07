@@ -443,7 +443,7 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 
 ### Priority order (June 2026)
 
-1. **Causal chain** — In contraction games, team ORtg and win rate vs. non-contraction games; control for score margin
+1. **Causal chain** — Step 0 done (team logs + validation). Next: join to floor games, then team ORtg and win rate vs. non-contraction games with score-margin control ([`causal_chain_plan.md`](causal_chain_plan.md))
 2. **Pass 2 at scale** — Same-game pre-event baselines on ~273 combined cold-start events
 3. **Out-of-sample validation** — Train profile on career first half, test on second half
 4. **Expand cohort** — Embiid, Butler, Mitchell to test PG/Harden category robustness
@@ -473,6 +473,7 @@ The honest paper is not "Harden chokes in the clutch." It is:
 | `documents/development/DEVELOPER.md` | Onboarding — setup, pipeline, what's done vs. open |
 | `documents/development/pass1_plan.md` | Original research design |
 | `documents/development/open_questions.md` | Resolved decisions + remaining gaps |
+| `documents/development/causal_chain_plan.md` | Causal chain Steps 0–4 (Step 0 complete) |
 
 ---
 
