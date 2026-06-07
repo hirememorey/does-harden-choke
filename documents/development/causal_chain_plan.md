@@ -1,33 +1,127 @@
-# Causal Chain Plan — Contraction → Team ORtg → Wins
+# Causal Chain Plan — Does Failure Mechanism Predict Team Outcomes?
 
-**Date:** June 2026  
+**Date:** June 2026 (revised from original CC1–CC4 framing)  
 **Status:** Step 0 **complete**; Steps 1–4 **not started**  
 **Blocks:** The practical claim that failure mode predicts team outcomes (`open_questions.md` §A)
 
 ---
 
-## Research question
+## Revision history
 
-Does a star's **contraction** in floor games causally hurt their team — lower offensive rating and lower win probability — relative to the same player's non-floor games and relative to **forcers** who preserve volume?
+The original version of this document (June 2026) framed the causal chain as CC1–CC4: floor games have lower team ORtg (CC1), lower win rate (CC2), contraction amplifies these (CC3), and the effect persists after score-margin control (CC4).
 
-Pass 1 established *that* players contract differently. This extension tests whether contraction *matters* for team success at the game level.
+**Problem:** CC1 and CC2 are mechanically obvious. Floor games are defined by bad individual performance, and bad individual performance from a star hurts the team. That result is tautological regardless of *how* the player fails. It is a sanity check, not a contribution.
 
-### Hypotheses
+**Revised framing:** The interesting question from Pass 1 is not whether bad games are bad, but whether the *type* of bad game matters. Pass 1 showed Harden contracts and Durant forces. This extension tests whether that distinction has team-level consequences — and in which direction.
 
-| ID | Claim | Test |
-|----|-------|------|
-| **CC1** | Floor games have lower team ORtg than the same player's non-floor games | Within-player paired comparison; regression with player FE |
-| **CC2** | Floor games have lower win rate than non-floor games | Logistic `win ~ is_floor + controls` |
-| **CC3** | Contraction mechanism amplifies CC1/CC2 | Interaction: floor × low FGA retention (Screen E / retention baselines) |
-| **CC4** | Effect persists after score-margin control | Add `plus_minus`, `opponent_defrtg`, `is_playoff`, `minutes` |
+---
 
-**Falsification:** If floor games show no team ORtg or win-rate penalty after controls, the taxonomy is descriptive only — not actionable for scouting.
+## Research question (revised)
+
+> Among floor games by high-usage stars, does the mechanism of failure — contraction (reduced volume, minutes, and creation) vs. forcing (preserved volume despite inefficiency) — predict team offensive outcomes, after controlling for individual performance quality?
+
+Pass 1 established *that* players fail differently. This extension tests whether those differences *matter* for team success.
+
+### Why this question matters
+
+If mechanism predicts team outcomes net of individual performance quality:
+- Front offices can price playoff risk differently for contractors vs. forcers with similar regular-season value
+- Coaching staffs can design interventions (force-feed a contracted star vs. redistribute away from a forcing star)
+- The "choker" narrative becomes not just mechanistically wrong (Pass 1) but consequentially wrong or right in a specific, measurable direction
+
+If mechanism does NOT predict team outcomes:
+- The taxonomy is descriptively interesting but not actionable for scouting
+- The paper contribution is Pass 1 only (taxonomy + trait stability)
+
+---
+
+## Hypotheses
+
+### Validation gates (sanity checks, not primary findings)
+
+| ID | Claim | Test | Expected |
+|----|-------|------|----------|
+| **VG1** | Floor games have lower team ORtg than the same player's non-floor games | Within-player mean comparison | Trivially true; confirms pipeline |
+| **VG2** | Floor games have lower win rate | Same | Trivially true |
+
+Run these in Step 2 as two-line checks. If either fails, something is broken in the data join. Do not present as findings.
+
+### Primary hypotheses (test all three symmetrically)
+
+| ID | Claim | Prediction |
+|----|-------|------------|
+| **H1: Contraction is worse** | When a star contracts in a floor game, the offense has no anchor, role players cannot step up effectively, and team ORtg collapses further than it would under forcing | Negative coefficient on `fga_retention` — lower retention (more contraction) predicts *lower* team ORtg, controlling for individual performance |
+| **H2: Forcing is worse** | When a star forces through inefficiency, they consume possessions that could have gone to teammates, compounding the damage | Positive coefficient on `fga_retention` — lower retention (more contraction) predicts *higher* team ORtg, i.e. contraction is actually better |
+| **H3: No difference** | Team outcome is determined by individual performance quality, not mechanism | Coefficient on `fga_retention` is not significant after controlling for `game_score` |
+
+**Prior expectation:** H1 (contraction is worse) based on the disengagement pattern in Screen E. But H2 is genuinely plausible — contraction may be rational redistribution to competent teammates. Test all three before assuming the sign.
+
+### Falsification
+
+If `fga_retention` has no predictive power for team ORtg after controlling for `game_score` and player fixed effects (H3 confirmed), the taxonomy is descriptive only. The paper is still publishable on Pass 1 findings but cannot make scouting claims.
+
+---
+
+## Key design decisions
+
+### 1. Restrict primary analysis to floor games
+
+The unit of analysis is **floor games by high-usage stars** (`is_floor_primary == 1`). We are not comparing floor games to non-floor games (that's a validation gate). We are comparing *types* of floor games to each other.
+
+### 2. Use continuous mechanism, not binary
+
+The key independent variable is **continuous `fga_retention`** (FGA/36 in this floor game ÷ player's non-floor FGA/36 baseline), not a binary contractor/forcer label. This is critical for two reasons:
+
+- **Within-player variation:** A binary `mechanism_contractor` label is a *player-level* trait. Including it alongside player fixed effects makes it collinear — the fixed effects absorb it. But continuous per-game `fga_retention` varies *within* players across floor games. Harden doesn't contract identically every time. Some floor games are 2-for-11 with 24 minutes; others are 5-for-16 with 33 minutes. That within-player variation is the identifying variation.
+
+- **Statistical power:** Continuous treatment has more power than binary classification, and avoids arbitrary threshold choices (the 55% vol_share cutoff in Screen E).
+
+### 3. Control for individual performance quality
+
+The regression must control for `game_score` (or an equivalent individual performance measure). Without this control, `fga_retention` will be confounded with "how bad was the floor game" — a player who takes only 5 shots in a terrible game has low retention AND low game score. We need to ask: *holding badness constant, does mechanism matter?*
+
+### 4. Player fixed effects for cross-player comparison
+
+Include `C(player_name)` fixed effects. This controls for all stable player characteristics (skill, role, average teammate quality, system). The identifying variation becomes within-player: across Player X's floor games, does the degree of contraction predict team ORtg?
+
+**Note on cross-player mechanism comparison:** A secondary descriptive analysis (Step 2) can compare Harden floor-game team ORtg to Durant floor-game team ORtg. But this is heavily confounded (different teams, systems, eras) and should be presented as illustrative, not causal.
+
+---
+
+## Endogeneity threats and mitigations
+
+### Threat 1: Selection into mechanism
+
+Why does Harden contract and Durant force? Possible confounds:
+- Harden faces better defensive schemes targeting him (so he contracts)
+- Durant has worse teammates (so he has to force because no one else can)
+- Harden plays in better offensive systems (easier to defer)
+
+**Mitigation:** Player fixed effects control for stable player-level confounds. Within-player variation (Harden contracts *more* in some floor games than others) is less likely to be driven by these factors. Control for `opponent_defrtg` and `is_elimination` to absorb game-level defensive context.
+
+### Threat 2: Reverse causality
+
+Does contraction cause bad team offense, or does bad team offense cause the star to contract? If teammates are cold, Harden may see no good passing options and reduce volume — making contraction a *response to* team collapse, not a *cause of* it.
+
+**Mitigation (game level):** Limited. Controlling for game score partially addresses this (it captures the player's individual performance independent of teammates). But game-level data cannot establish temporal ordering.
+
+**Mitigation (Pass 2):** This is Pass 2's strongest contribution to the causal chain. Possession-level data can establish temporal ordering: does the star's usage drop *follow* a personal cold start (Event A) or *follow* team-wide offensive collapse? If Event A fires (star goes 1-for-5), and *then* the star's usage drops, and *then* team ORtg changes, the reverse causality story is harder to sustain. Pass 2 provides the temporal chain that game-level regressions cannot.
+
+### Threat 3: Definition circularity
+
+Floor games are defined by Game Score, which includes FGA. If a player takes fewer shots, Game Score mechanically drops, which *creates* floor games. So contraction partly *causes* floor-game classification, not just behavior within floor games.
+
+**Mitigation:** FGA enters Game Score with a negative coefficient (−0.7 × FGA), meaning *more* shots actually *lower* Game Score, all else equal. So taking fewer shots does not mechanically lower Game Score — missing more shots does. The circularity concern is therefore limited: FGA retention measures volume independent of the makes/misses that define floor-game status.
+
+### Transparent acknowledgment (for the paper)
+
+> We cannot claim strict causality due to selection and reverse causality concerns. The within-player fixed-effects design isolates variation in mechanism across a player's floor games, which is more plausibly exogenous than cross-player comparisons. Possession-level temporal analysis (Pass 2) provides supplementary evidence on causal direction by establishing that contraction follows personal cold starts rather than preceding them.
 
 ---
 
 ## Prerequisites
 
-Before starting Step 1, regenerate locally:
+Unchanged from the original plan. Before starting Step 1, regenerate locally:
 
 ```bash
 make venv
@@ -50,50 +144,25 @@ Step 0 validation gates (June 2026 run):
 
 ## Step 0 — Team game logs (DONE)
 
-**Goal:** Attach team-level `OFF_RATING`, `POSS`, `WL`, and box score to every player-game row in the cohort.
+Unchanged. See original plan for details on `scrape_team_logs.py` and `validate_team_logs.py`.
 
-### Scripts
+**Key columns in `team_game_logs.csv`:**
 
-| Script | Output | Notes |
-|--------|--------|-------|
-| `src/scrape_team_logs.py` | `data/raw/team_game_logs.csv` | 372 team-season keys from player CSVs; Base + Advanced merge |
-| `src/validate_team_logs.py` | stdout gates | Run after every scrape |
-
-### Makefile
-
-```bash
-make scrape-team-logs      # --resume: checkpoint every 10 keys, skip completed
-make validate-team-logs
-make smoke-team-logs       # 5 team-seasons in 2023-24 only (dev)
-```
-
-### Implementation notes
-
-1. **Keys:** `collect_team_season_keys()` dedupes `(team_id, season, is_playoff)` from all `{player_slug}_rs.csv` and `_po.csv` under `data/raw/`.
-2. **API:** `nba_client.get_team_game_logs(team_id, season, season_type, measure_type)` — `measure_type` added June 2026 (was hardcoded `"Base"`).
-3. **game_id normalization:** Both player and team logs use `normalize_game_id()` (10-digit zero-padded, e.g. `20900012` → `0020900012`). **Required** for join — without it, join coverage was ~2%.
-4. **Resume:** `--resume` reads existing CSV, skips completed keys, checkpoints every 10 fetches (~50 min full run).
-5. **Scale:** ~19,700 team-game rows, ~16,900 unique games for the 18-player cohort.
-
-### Key columns in `team_game_logs.csv`
-
-| Column | Source | Use in causal chain |
-|--------|--------|---------------------|
+| Column | Source | Use |
+|--------|--------|-----|
 | `game_id`, `team_id` | API | Join keys |
-| `off_rating` | Advanced | **Primary outcome (CC1)** |
-| `def_rating` | Advanced | Opponent context / sensitivity |
+| `off_rating` | Advanced | **Primary dependent variable** |
+| `def_rating` | Advanced | Opponent context control |
 | `poss` | Advanced | ORtg validation; pace control |
-| `pts`, `fga`, `fgm`, `oreb`, `tov`, `fta` | Base | Formula ORtg fallback |
-| `wl` | Base | **Win indicator (CC2)** |
-| `plus_minus` | Base | Score-margin proxy (CC4) |
+| `wl` | Base | Win indicator (secondary DV) |
+| `plus_minus` | Base | Blowout sensitivity filter |
 | `season`, `is_playoff` | derived | Fixed effects |
-| `opponent`, `matchup` | parsed | Audit |
 
 ---
 
-## Step 1 — Join player floor flags to team outcomes (NEXT)
+## Step 1 — Join and compute per-game mechanism variables (NEXT)
 
-**Goal:** One analysis-ready table: player floor flag + team ORtg + win per game.
+**Goal:** One analysis-ready table with player floor flags, per-game mechanism metrics, and team outcomes.
 
 ### Proposed script
 
@@ -102,7 +171,6 @@ make smoke-team-logs       # 5 team-seasons in 2023-24 only (dev)
 ### Logic
 
 ```python
-# Pseudocode
 players = pd.read_csv("data/processed/analysis_table.csv")
 teams = pd.read_csv("data/raw/team_game_logs.csv")
 
@@ -116,24 +184,54 @@ merged = players.merge(
     suffixes=("", "_team"),
 )
 
-# Attach mechanism labels from screen_e_results.csv (optional left join on player)
-merged.to_csv("data/processed/causal_analysis_table.csv")
+# Compute per-game FGA retention relative to player's non-floor baseline
+baselines = (
+    merged[merged["is_floor_primary"] == False]
+    .groupby("player_name")
+    .agg(
+        baseline_fga_per36=("fga", lambda x: (x / merged.loc[x.index, "minutes"] * 36).mean()),
+        baseline_fta_per36=("fta", lambda x: (x / merged.loc[x.index, "minutes"] * 36).mean()),
+        baseline_ast_per36=("ast", lambda x: (x / merged.loc[x.index, "minutes"] * 36).mean()),
+    )
+)
+merged = merged.merge(baselines, on="player_name", how="left")
+
+# Per-game retention: how much of normal volume did the player maintain?
+merged["fga_per36"] = merged["fga"] / merged["minutes"] * 36
+merged["fga_retention"] = merged["fga_per36"] / merged["baseline_fga_per36"]
+merged["fta_per36"] = merged["fta"] / merged["minutes"] * 36
+merged["fta_retention"] = merged["fta_per36"] / merged["baseline_fta_per36"]
+
+# Attach Screen E mechanism labels (for descriptive splits)
+screen_e = pd.read_csv("data/processed/screen_e_results.csv")
+merged = merged.merge(
+    screen_e[["player_name", "mechanism", "vol_share"]],
+    on="player_name",
+    how="left",
+    suffixes=("", "_e"),
+)
+
+merged["team_win"] = (merged["wl"] == "W").astype(int)
+
+merged.to_csv("data/processed/causal_analysis_table.csv", index=False)
 ```
-
-### Join keys
-
-- `(game_id, team_id)` — player row is always from the team they played for that game.
-- Expect **~17,000 rows** (same as join validation count); inner join drops player-games missing team logs (should be 0 after Step 0).
 
 ### Columns to carry forward
 
-From `analysis_table.csv`: `player_name`, `is_floor_primary`, `game_score`, `minutes`, `is_playoff`, `opponent_defrtg`, `series_game_num`, `is_elimination`, `plus_minus` (player).
+From `analysis_table.csv`: `player_name`, `is_floor_primary`, `game_score`, `minutes`, `fga`, `fta`, `ast`, `is_playoff`, `opponent_defrtg`, `series_game_num`, `is_elimination`, `plus_minus` (player).
 
 From `team_game_logs.csv`: `off_rating`, `def_rating`, `poss`, `wl`, `pts` (team).
 
 Derived:
-- `team_win` = `wl == "W"`
-- `player_floor` = `is_floor_primary`
+- `fga_per36` — FGA per 36 minutes in this game
+- `fga_retention` — this game's FGA/36 ÷ player's non-floor mean FGA/36
+- `fta_retention` — same for FTA
+- `baseline_fga_per36`, `baseline_fta_per36` — player baselines from non-floor games
+- `team_win` — `wl == "W"`
+
+### Important: per-game vs. player-level retention
+
+The `fga_retention` and `fta_retention` in `retention_baselines.csv` (from `rs_retention_baseline.py`) are **player-level averages**: mean floor-game FGA/36 ÷ mean non-floor FGA/36. For the regression, we need **per-game** retention: this specific floor game's FGA/36 ÷ the player's non-floor baseline. This captures within-player variation that the player-level average masks.
 
 ### Validation gate (Step 1)
 
@@ -142,7 +240,8 @@ Derived:
 | Row count | ≥99% of `analysis_table` rows with valid `team_id` |
 | No duplicate keys | One row per `(game_id, player_name)` |
 | ORtg non-null | ≥95% `off_rating` populated |
-| Spot check | Harden 2017 G6: floor game, team ORtg and WL match basketball-reference / memory |
+| fga_retention finite | No inf/NaN for floor games with minutes > 0 |
+| Spot check | Harden 2017 G6: floor game, low fga_retention, team ORtg and WL match memory |
 
 ### Makefile target (to add)
 
@@ -153,90 +252,208 @@ join-causal:
 
 ---
 
-## Step 2 — Descriptive causal comparisons
+## Step 2 — Descriptive analysis
 
-**Goal:** Answer CC1 and CC2 descriptively before regression.
+**Goal:** Show the patterns before regression. Build intuition for what the data looks like.
 
 ### Proposed script
 
-`src/causal_chain_screen.py` (not yet written)
+`src/mechanism_descriptives.py` (not yet written)
 
-### Analyses
+### 2a. Validation gates (VG1, VG2)
 
-1. **Within-player floor vs non-floor**
-   - Per player: mean `off_rating` | floor vs non-floor; mean `team_win` rate
-   - Paired structure: same player, different game types
+Per-player: mean team `off_rating` in floor vs. non-floor games; mean `team_win` rate. Confirm floor games are worse on both. Two-line table, not a finding. If any player shows *higher* team ORtg in floor games, investigate the data join.
 
-2. **Mechanism split**
-   - Merge `screen_e_results.csv` `mechanism` (shrinker/forcer/mixed)
-   - Or use continuous `vol_share` / FGA retention from `retention_baselines.csv`
-   - Compare floor-game team ORtg penalty: contractors vs forcers
+### 2b. Mechanism-conditional team ORtg in floor games (primary descriptive)
 
-3. **Harden vs Durant contrast**
-   - Lead case: Harden floor games → team ORtg delta vs Durant floor games
+Among floor games only:
+
+| Analysis | What to show |
+|----------|-------------|
+| Scatter | Per-game `fga_retention` (x) vs. `off_rating` (y), colored by player. Is there a visible slope? |
+| Player means | Mean team ORtg in Harden floor games vs. Durant floor games vs. Curry floor games. Raw comparison (confounded, but vivid). |
+| Mechanism groups | Mean team ORtg in contractor floor games vs. forcer floor games (using Screen E labels). Report with caveat about cross-player confounding. |
+| Within-player | For Harden specifically: split his floor games by above/below-median `fga_retention`. Does team ORtg differ? Same for other players with ≥15 floor games. |
+
+### 2c. Matched comparison (Harden vs. Durant)
+
+Find Harden floor games and Durant floor games matched on:
+- `game_score` (within ±3 points)
+- `opponent_defrtg` (within ±2 points)
+- `is_elimination` (exact match)
+
+Compare team `off_rating` in matched pairs. Report sample size — it will be small, but the comparison is intuitive for a Sloan audience. Present as illustrative, not causal.
+
+### 2d. Teammate efficiency under contraction vs. forcing
+
+For each floor game, compute `teammate_off_rating_proxy`:
+
+```python
+team_pts = merged["pts_team"]
+player_pts = merged["pts"]  # player's own points
+# Very rough: (team_pts - player_pts) as share of team possessions not used by player
+```
+
+If contractive floor games show *higher* teammate scoring efficiency, that supports H2 (contraction is rational redistribution). If lower, that supports H1 (contraction leaves the offense anchorless).
+
+This is a rough proxy — team ORtg is not decomposable into player and non-player contributions cleanly from box scores. But the directional signal is informative.
 
 ### Output
 
-`data/processed/causal_chain_results.csv` — per-player floor vs non-floor team ORtg and win rate.
+`data/processed/mechanism_descriptives.csv` — per-player floor-game mechanism metrics with team outcomes.
+
+Figures: scatter of fga_retention vs. team ORtg; bar chart of mechanism-group team ORtg.
 
 ---
 
-## Step 3 — Regression with controls (CC4)
+## Step 3 — Regression models
 
-**Goal:** Estimate floor-game penalty net of game context.
+**Goal:** Estimate the marginal effect of failure mechanism on team outcomes, controlling for individual performance quality and game context.
 
-### Model sketches
+### Proposed script
 
-**Team ORtg (CC1):**
-```
-off_rating ~ is_floor_primary + plus_minus + opponent_defrtg + is_playoff
-             + C(player_name) + C(season)
-```
-Cluster SE at player level. Alternative: within-player demeaned specification.
+`src/mechanism_models.py` (not yet written)
 
-**Win probability (CC2):**
-```
-team_win ~ is_floor_primary + plus_minus + opponent_defrtg + is_playoff
-           + C(player_name) + C(season)
+### Model 1: Primary specification (team ORtg)
+
+```python
+import statsmodels.formula.api as smf
+
+floor_games = data[data['is_floor_primary'] == 1]
+
+model1 = smf.ols('''
+    off_rating ~
+        fga_retention +
+        game_score +
+        opponent_defrtg +
+        is_playoff +
+        minutes +
+        C(player_name) +
+        C(season)
+''', data=floor_games).fit(cov_type='cluster', cov_kwds={'groups': floor_games['player_name']})
 ```
 
-**Mechanism interaction (CC3):**
+**Interpretation:** The coefficient on `fga_retention` is the key estimate.
+- **Positive** → higher retention (forcing) predicts *better* team ORtg → contraction is worse (H1)
+- **Negative** → higher retention (forcing) predicts *worse* team ORtg → forcing is worse (H2)
+- **Not significant** → mechanism doesn't matter (H3)
+
+### Model 2: Win probability
+
+```python
+model2 = smf.logit('''
+    team_win ~
+        fga_retention +
+        game_score +
+        opponent_defrtg +
+        is_playoff +
+        minutes +
+        C(player_name) +
+        C(season)
+''', data=floor_games).fit(cov_type='cluster', cov_kwds={'groups': floor_games['player_name']})
 ```
-off_rating ~ is_floor * contractor_indicator + controls + FE
+
+### Model 3: FTA retention as alternative mechanism measure
+
+```python
+model3 = smf.ols('''
+    off_rating ~
+        fta_retention +
+        game_score +
+        opponent_defrtg +
+        is_playoff +
+        minutes +
+        C(player_name) +
+        C(season)
+''', data=floor_games).fit(cov_type='cluster', cov_kwds={'groups': floor_games['player_name']})
 ```
-Where `contractor_indicator` comes from Screen E (`vol_share > 0.55`) or low FGA retention.
+
+FTA retention captures a different facet of contraction — specifically relevant for the PG rim-abandonment archetype.
+
+### Model 4: Descriptive cross-player mechanism (no player FE)
+
+```python
+model4 = smf.ols('''
+    off_rating ~
+        mechanism_contractor +
+        game_score +
+        opponent_defrtg +
+        is_playoff +
+        minutes +
+        C(season)
+''', data=floor_games).fit(cov_type='HC1')
+```
+
+Where `mechanism_contractor` is a binary indicator from Screen E labels. This model does NOT include player fixed effects, so it captures cross-player mechanism differences. It is **descriptive only** — the coefficient is confounded by team quality, system, era, and everything else that differs between contractors and forcers. Report with heavy caveats. Its role is to provide the vivid "contractor floor games vs. forcer floor games" comparison for narrative purposes.
+
+### Robustness checks
+
+| Check | Specification change |
+|-------|---------------------|
+| Close games only | Exclude games where \|`plus_minus`\| > 15 |
+| Minutes floor | Restrict to `minutes >= 25` (removes blowout benchings per Kobe lesson) |
+| Playoff only | Restrict to `is_playoff == 1` |
+| Exclude injury-flagged | Drop `minutes <= 15` games |
+| Within-series | Add series FE (`C(series_id)`) where available |
+| Continuous game score | Replace `game_score` with TS% as individual performance control |
+| Harden-only | Run within-player on Harden's ~36 PO floor games alone (underpowered but vivid) |
 
 ### Confounds acknowledged
 
 | Confound | Mitigation |
 |----------|------------|
-| Blowouts | `plus_minus`; sensitivity: exclude \|PM\| > 15 |
-| Coach benches star in floor games | Minutes drop conflates player + coach; Pass 2 decontamination later |
+| Cross-player system/teammate quality | Player FE in primary spec; cross-player comparison is descriptive only |
+| Individual performance severity | `game_score` control; sensitivity with TS% |
+| Blowout benchings inflate contraction | Minutes control; ≥25 min sensitivity; Kobe lesson applied |
 | Opponent quality | `opponent_defrtg` (season-level; coarse) |
-| Playoff intensity | `is_playoff` FE |
-| Star not playing whole game | Control `minutes`; sensitivity: `minutes >= 25` |
+| Reverse causality (team collapse → star contracts) | Acknowledged; partially addressed by `game_score` control; fully addressed only by Pass 2 temporal ordering |
+| Small sample within player | Clustered SE at player level; report effective sample sizes |
 
 ---
 
 ## Step 4 — Report and bridge to paper
 
-1. Update `findings.md` with causal chain section.
-2. Add figure: floor vs non-floor team ORtg by mechanism class.
-3. One paragraph: "Screen E showed contraction; causal chain [does/does not] show it costs wins."
+### 4a. Update `findings.md`
+
+Add a new section: **"Causal Chain: Does Failure Mechanism Predict Team Outcomes?"**
+
+Structure based on what the results show:
+
+**If H1 (contraction is worse):**
+> Stars who contract in floor games produce significantly worse team offense than stars who force through inefficiency, even after controlling for individual performance quality. This suggests contraction is not a neutral failure mode — it actively damages team outcomes beyond the star's own scoring collapse. Coaching interventions that keep contracted stars involved (force-feeding, set plays) may mitigate playoff risk.
+
+**If H2 (forcing is worse):**
+> Stars who force through floor games produce significantly worse team offense than stars who contract, after controls. Contraction may be a rational, team-first adaptation: by reducing volume, the contracted star cedes possessions to teammates who can use them more efficiently. The "choker" narrative is not just mechanistically wrong — it may describe a strategically *correct* response to personal adversity.
+
+**If H3 (no difference):**
+> After controlling for individual performance quality, failure mechanism does not predict team offensive outcomes. The taxonomy (contraction vs. forcing) is descriptively valid and captures real behavioral differences, but those differences do not produce measurably different team consequences at the game level. The paper contribution is the taxonomy itself, not a scouting recommendation.
+
+### 4b. Figures to produce
+
+1. Scatter: per-game `fga_retention` vs. team `off_rating` in floor games, with regression line, faceted or colored by player
+2. Bar chart: mean team ORtg in contractor vs. forcer vs. mixed floor games (with CI error bars)
+3. Within-player: Harden floor-game team ORtg by fga_retention quartile
+4. Matched pairs: Harden vs. Durant floor games, team ORtg side-by-side (if sample permits)
+
+### 4c. Bridge to Pass 2
+
+Regardless of H1/H2/H3 outcome, note:
+
+> Game-level analysis cannot establish causal direction between mechanism and team outcomes. Pass 2 possession-level data provides temporal ordering: if Event A fires (personal cold start) and usage drops *follow* rather than *precede* team offensive collapse, reverse causality is less plausible. This temporal evidence is the strongest available causal argument in observational data.
 
 ---
 
-## Implementation sequence
+## Implementation sequence (revised)
 
-| Step | Module | Depends on | Status |
-|------|--------|------------|--------|
-| 0 | `scrape_team_logs.py`, `validate_team_logs.py` | Player raw CSVs | **Done** |
-| 1 | `join_causal_table.py` | Step 0 + `analysis_table.csv` | **Next** |
-| 2 | `causal_chain_screen.py` | Step 1 + `screen_e_results.csv` | Pending |
-| 3 | `causal_chain_models.py` (or notebook) | Step 1 | Pending |
-| 4 | `findings.md` update | Steps 2–3 | Pending |
+| Step | Module | Depends on | Status | Description |
+|------|--------|------------|--------|-------------|
+| 0 | `scrape_team_logs.py`, `validate_team_logs.py` | Player raw CSVs | **Done** | Team ORtg, POSS, WL |
+| 1 | `join_causal_table.py` | Step 0 + `analysis_table.csv` + `screen_e_results.csv` | **Next** | Join + per-game retention |
+| 2 | `mechanism_descriptives.py` | Step 1 | Pending | Descriptive tables and figures |
+| 3 | `mechanism_models.py` | Step 1 | Pending | Regressions (H1/H2/H3) |
+| 4 | `findings.md` update | Steps 2–3 | Pending | Interpret and report |
 
-**No step may skip validation gates.** Step 0 gate is `make validate-team-logs` exit 0.
+**No step may skip validation gates.** Step 0 gate is `make validate-team-logs` exit 0. Step 1 gate is the join validation table above.
 
 ---
 
@@ -247,12 +464,15 @@ Where `contractor_indicator` comes from Screen E (`vol_share > 0.55`) or low FGA
 | `documents/development/causal_chain_plan.md` | This document |
 | `src/scrape_team_logs.py` | Step 0 fetch |
 | `src/validate_team_logs.py` | Step 0 validation |
-| `src/join_causal_table.py` | Step 1 (to write) |
-| `src/causal_chain_screen.py` | Step 2 (to write) |
+| `src/join_causal_table.py` | Step 1 — join + per-game retention (to write) |
+| `src/mechanism_descriptives.py` | Step 2 — descriptive analysis (to write) |
+| `src/mechanism_models.py` | Step 3 — regressions (to write) |
 | `data/raw/team_game_logs.csv` | Step 0 output (gitignored) |
 | `data/processed/analysis_table.csv` | Player games + floor flags |
 | `data/processed/causal_analysis_table.csv` | Step 1 output (to write) |
-| `data/processed/screen_e_results.csv` | Mechanism labels for CC3 |
+| `data/processed/screen_e_results.csv` | Mechanism labels for descriptive splits |
+| `data/processed/retention_baselines.csv` | Player-level retention (reference, not primary IV) |
+| `data/processed/mechanism_descriptives.csv` | Step 2 output (to write) |
 
 ---
 
@@ -264,3 +484,6 @@ Where `contractor_indicator` comes from Screen E (`vol_share > 0.55`) or low FGA
 | Jun 2026 | Step 0: team `teamgamelogs` API (Base + Advanced), not box-score reconstruction alone |
 | Jun 2026 | `game_id` must be normalized to 10 digits before any player↔team join |
 | Jun 2026 | Step 0 complete — 19,717 rows, 100% join coverage, validation OK |
+| Jun 2026 | **Revised:** CC1/CC2 demoted to validation gates; primary analysis restricted to floor games; continuous `fga_retention` replaces binary mechanism indicator; player FE + `game_score` control isolate within-player mechanism variation |
+| Jun 2026 | **Revised:** Test H1 (contraction worse), H2 (forcing worse), H3 (no difference) symmetrically — do not assume contraction is harmful |
+| Jun 2026 | **Revised:** Pass 2 temporal ordering identified as strongest available mitigation for reverse causality |

@@ -11,7 +11,7 @@ This guide gets a new contributor from clone → running analyses → understand
 Research project testing whether James Harden's playoff reputation reflects a real variance shift — and, more generally, whether star players **contract**, **force**, or **redistribute** under adversity.
 
 - **Pass 1 (game level):** Complete. Screens A–E plus June 2026 extensions (opponent adjustment, RS retention baselines, refined mechanism taxonomy).
-- **Causal chain (game level):** Step 0 complete — team game logs scraped and validated (`scrape_team_logs.py`). Step 1 (join to `analysis_table.csv`) is next. See [`causal_chain_plan.md`](causal_chain_plan.md).
+- **Causal chain (game level):** Step 0 complete — team game logs scraped and validated (`scrape_team_logs.py`). Framing revised (June 2026): primary question is now "does failure mechanism predict team outcomes among floor games?" using continuous per-game `fga_retention` with player FE. Step 1 (join + per-game retention) is next. See [`causal_chain_plan.md`](causal_chain_plan.md).
 - **Pass 2 (possession level):** Parser validated on fixture games; event frequency estimated; full pipeline not scaled to all ~270 cold-start events.
 
 **Current thesis (one sentence):**
@@ -122,7 +122,7 @@ Smoke test (5 team-seasons in 2023-24):
 make smoke-team-logs
 ```
 
-**Next:** implement Step 1 per [`causal_chain_plan.md`](causal_chain_plan.md) — join `team_game_logs.csv` to `analysis_table.csv` on `(game_id, team_id)` with normalized game IDs.
+**Next:** implement Step 1 per [`causal_chain_plan.md`](causal_chain_plan.md) — join `team_game_logs.csv` to `analysis_table.csv` on `(game_id, team_id)` with normalized game IDs, then compute per-game `fga_retention` and `fta_retention` relative to each player's non-floor baseline.
 
 ### 5. Pass 2 (partial)
 
@@ -202,10 +202,10 @@ See [`findings.md`](findings.md) for full tables and interpretation.
 
 These block a "who to avoid in the playoffs" scouting claim:
 
-1. **Causal chain Step 1+** — join floor flags to team ORtg; test contraction → wins ([`causal_chain_plan.md`](causal_chain_plan.md))
-2. **Minutes decontamination at possession level** — on-floor contraction vs. benching
-3. **Out-of-sample validation** — train profile on career first half, test second half
-4. **Pass 2 at scale** — same-game pre-event baselines on full event set
+1. **Does failure mechanism predict team outcomes?** — The causal chain has been revised (June 2026). The question is no longer "do floor games hurt teams?" (obvious) but "among floor games, does contracting vs. forcing change team ORtg?" Uses continuous per-game `fga_retention` with player FE and `game_score` control. Tests H1 (contraction worse), H2 (forcing worse), H3 (no difference) symmetrically. Step 1 (join + per-game retention), Step 2 (descriptives), Step 3 (regressions) not yet implemented. See [`causal_chain_plan.md`](causal_chain_plan.md).
+2. **Reverse causality direction** — Does contraction *cause* bad team offense, or does bad team offense *cause* the star to contract? Game-level data cannot resolve this. Pass 2 temporal ordering (does usage drop follow personal cold start or team-wide collapse?) is the strongest available mitigation.
+3. **Minutes decontamination at possession level** — on-floor contraction vs. benching
+4. **Out-of-sample validation** — train profile on career first half, test second half
 5. **Series-level defensive data** — season-average DEF_RATING is coarse
 6. **Small-sample players** — SGA (8 PO floor games), PG (17) need more data
 
@@ -225,17 +225,19 @@ Full list: [`open_questions.md` § Remaining work](open_questions.md).
 | `data/processed/event_frequency_estimates.csv` | `pass2/event_frequency.py` |
 | `data/processed/pass2/possessions_*.csv` | `pass2/possessions.py` |
 | `data/raw/team_game_logs.csv` | `scrape_team_logs.py` |
-| `data/processed/causal_analysis_table.csv` | `join_causal_table.py` *(not yet written)* |
+| `data/processed/causal_analysis_table.csv` | `join_causal_table.py` *(not yet written — Step 1)* |
+| `data/processed/mechanism_descriptives.csv` | `mechanism_descriptives.py` *(not yet written — Step 2)* |
 
 ---
 
 ## Suggested next tasks (priority order)
 
-1. **Causal chain Step 1** — `join_causal_table.py`: merge `analysis_table.csv` + `team_game_logs.csv`
-2. **Pass 2 at scale** — run pre-event baseline matching on ~273 events
-3. **Out-of-sample validation** — split career halves
-4. **Expand cohort** — Embiid, Butler, Mitchell
-5. **Exclude 3–5 possessions before Event A** from baseline pool (per `pass2_design_spec.md`)
+1. **Causal chain Step 1** — `join_causal_table.py`: merge `analysis_table.csv` + `team_game_logs.csv`, compute per-game `fga_retention` and `fta_retention` relative to each player's non-floor baseline. This is the critical data table for the mechanism → team outcome analysis.
+2. **Causal chain Step 2** — `mechanism_descriptives.py`: validation gates (floor vs. non-floor team ORtg), mechanism-conditional descriptive tables, matched Harden-vs-Durant comparison, teammate efficiency under contraction vs. forcing.
+3. **Causal chain Step 3** — `mechanism_models.py`: regressions testing H1/H2/H3 with `fga_retention` + `game_score` + player FE + controls. See [`causal_chain_plan.md`](causal_chain_plan.md) for model specifications.
+4. **Pass 2 temporal ordering** — Establish whether contraction follows personal cold start (Event A) or team-wide offensive collapse. This is the strongest reverse-causality mitigation available. Prioritize alongside causal chain.
+5. **Out-of-sample validation** — split career halves
+6. **Expand cohort** — Embiid, Butler, Mitchell
 
 ---
 
@@ -257,4 +259,4 @@ Full list: [`open_questions.md` § Remaining work](open_questions.md).
 | Original Pass 1 design | `pass1_plan.md` |
 | Pass 2 event definitions | `pass2_design_spec.md` |
 | Parser validation | `pass2_possession_parser_status.md` |
-| Causal chain implementation | `causal_chain_plan.md` |
+| Causal chain implementation (revised) | `causal_chain_plan.md` |

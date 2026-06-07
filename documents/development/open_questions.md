@@ -119,11 +119,26 @@ Evidence lives in [`findings.md`](findings.md). Onboarding: [`DEVELOPER.md`](DEV
 
 These block the "who to avoid in the playoffs" practical claim:
 
-### A. Causal chain to team outcomes
+### A. Causal chain to team outcomes (revised framing)
 
 **Step 0 complete (June 2026).** Team game logs with `OFF_RATING`, `POSS`, `WL` fetched for all cohort games; validation passed (100% join coverage, ORtg sanity OK). See [`causal_chain_plan.md`](causal_chain_plan.md).
 
-**Still open:** Does contraction → team ORtg drop → lost games? Step 1 (join player floor flags to team outcomes) and Steps 2–3 (descriptive + regression with score-margin control) not yet implemented.
+**Framing revised (June 2026).** The original CC1–CC4 hypotheses ("floor games have lower team ORtg") were demoted to validation gates — they are mechanically obvious and not a contribution. The revised question is:
+
+> Among floor games, does failure mechanism (contraction vs. forcing, measured continuously via per-game FGA retention) predict team ORtg, after controlling for individual performance quality?
+
+Three hypotheses tested symmetrically:
+- **H1 (contraction is worse):** Lower FGA retention → lower team ORtg. Contracted star leaves offense anchorless.
+- **H2 (forcing is worse):** Lower FGA retention → *higher* team ORtg. Contraction redistributes possessions to competent teammates.
+- **H3 (no difference):** Mechanism has no predictive power after controlling for `game_score`. Taxonomy is descriptive only.
+
+Key design decisions:
+- Primary sample restricted to floor games (`is_floor_primary == 1`)
+- Continuous `fga_retention` per game (not binary contractor/forcer label)
+- Player FE + `game_score` control to isolate within-player mechanism variation
+- Reverse causality acknowledged; Pass 2 temporal ordering is the strongest available mitigation
+
+**Still open:** Step 1 (join + per-game retention computation), Step 2 (descriptive analysis), Step 3 (regressions).
 
 ### B. Minutes decontamination at possession level
 
@@ -162,3 +177,4 @@ Embiid, Butler, Mitchell, Booker — test whether PG/Harden opponent-independent
 | Jun 2026 | `DEVELOPER.md` added; documentation sweep for handoff |
 | Jun 2026 | Causal chain Step 0: `scrape_team_logs.py` + `validate_team_logs.py`; 19,717 team-game rows; 100% join coverage |
 | Jun 2026 | `causal_chain_plan.md` added; Step 1 (`join_causal_table.py`) is next |
+| Jun 2026 | Causal chain revised: CC1/CC2 demoted to validation gates; primary analysis uses continuous `fga_retention` on floor games with player FE; H1/H2/H3 tested symmetrically |

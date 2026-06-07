@@ -420,10 +420,11 @@ FGA retention = (FGA/36 in floor games) / (FGA/36 in non-floor games). Same for 
 2. **Peer sample still modest** — 18 players; PG (17 PO floor games), SGA (8) underpowered for structural claims.
 3. **Game Score is offense-only** — Does not capture defensive variability.
 4. **Season-level opponent DEF_RATING** — No game-level or series-level scheme adjustment.
-5. **Age and team context** — Not controlled.
+5. **Age and team context** — Not controlled (partially mitigated by player + season FE in causal chain).
 6. **Minutes contamination** — Partially addressed (≥25 min filter); possession-level decontamination still needed.
-7. **No causal chain** — Contraction → team ORtg → wins untested.
-8. **Leverage score is constructed** — Not WP-based.
+7. **Causal chain not yet run** — Does failure mechanism predict team ORtg? Revised plan uses continuous `fga_retention` on floor games with player FE and `game_score` control; tests H1/H2/H3 symmetrically. See [`causal_chain_plan.md`](causal_chain_plan.md).
+8. **Reverse causality in mechanism** — Does contraction *cause* bad team offense, or does bad team offense *cause* contraction? Game-level data cannot resolve this. Pass 2 temporal ordering (does usage drop follow personal cold start or team collapse?) is the strongest available mitigation.
+9. **Leverage score is constructed** — Not WP-based.
 
 ---
 
@@ -441,10 +442,10 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 
 ## Suggested Next Steps
 
-### Priority order (June 2026)
+### Priority order (June 2026, revised)
 
-1. **Causal chain** — Step 0 done (team logs + validation). Next: join to floor games, then team ORtg and win rate vs. non-contraction games with score-margin control ([`causal_chain_plan.md`](causal_chain_plan.md))
-2. **Pass 2 at scale** — Same-game pre-event baselines on ~273 combined cold-start events
+1. **Causal chain — mechanism → team outcomes** — Step 0 done (team logs + validation). Next: join to floor games with per-game FGA retention, then test whether failure mechanism (continuous `fga_retention`) predicts team ORtg among floor games, controlling for individual performance quality (`game_score`) and player fixed effects. Three hypotheses tested symmetrically: contraction is worse (H1), forcing is worse (H2), no difference (H3). See [`causal_chain_plan.md`](causal_chain_plan.md) for full revised specification.
+2. **Pass 2 temporal ordering** — Possession-level data can establish whether contraction *follows* a personal cold start (Event A) or *follows* team-wide offensive collapse. This is the strongest available mitigation for the reverse causality threat in the causal chain. Prioritize alongside causal chain, not after it.
 3. **Out-of-sample validation** — Train profile on career first half, test on second half
 4. **Expand cohort** — Embiid, Butler, Mitchell to test PG/Harden category robustness
 5. **Minutes decontamination** — Possession-level "on-floor contraction" vs. benching
@@ -453,7 +454,9 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 
 The honest paper is not "Harden chokes in the clutch." It is:
 
-**"Failure modes under adversity: contraction vs. forcing among NBA stars"** — documenting a novel taxonomy, showing contraction is a stable trait, and distinguishing opponent-independent contractors (Harden, PG) from scheme-dependent ones (SGA) and forcers (Durant, Curry).
+**"Stars fail in systematically different ways, and those differences have measurable team-level consequences that persist after controlling for individual performance quality"** — documenting a novel taxonomy, showing contraction is a stable trait, distinguishing opponent-independent contractors (Harden, PG) from scheme-dependent ones (SGA) and forcers (Durant, Curry), and testing whether the mechanism of failure predicts team outcomes net of how badly the star played.
+
+If the causal chain shows no mechanism effect (H3), the paper is still publishable on the taxonomy alone, but the contribution is descriptive rather than actionable for scouting.
 
 ---
 
