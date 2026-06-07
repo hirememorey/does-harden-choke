@@ -1,20 +1,30 @@
-# Does Harden Choke? — Pass 1 Findings
+# Does Harden Choke? — Findings
 
-**Date:** March 2026  
+**Date:** June 2026 (Pass 1: March 2026; extensions: June 2026)  
 **Project:** `does-harden-choke`  
-**Status:** Pass 1 complete (Screens A–E); Pass 2 not started
+**Status:** Pass 1 complete (Screens A–E) + extensions (opponent adjustment, RS retention baselines, event frequency). Pass 2 parser validated; possession analysis at spike scale (~69 games).
+
+**Cohort:** 18 players, ~20,000 games in `analysis_table.csv`
 
 ---
 
 ## Executive Summary
 
-The original hypothesis asked whether James Harden’s playoff reputation reflects a **variance shift** (more catastrophic floor games) that **compounds late in series** because opponents adapt to heliocentric offense — and whether that pattern distinguishes Group A (heliocentric creators) from Group B (scalable stars).
+The original hypothesis asked whether James Harden's playoff reputation reflects a **variance shift** that **compounds late in series** because opponents adapt to heliocentric offense — and whether that pattern distinguishes Group A from Group B.
 
-**Verdict:** The adaptation story is dead. The heliocentric-vs-scalable distinction is directionally suggestive but statistically underpowered. What *is* distinctive about Harden is not *when* his bad games happen or *how often* they happen relative to peers, but **what kind** of bad games they are: total offensive contraction (fewer shots, fewer free throws, fewer assists, fewer minutes) rather than high-volume inefficiency.
+**Verdict (updated):** The adaptation story is dead (H2 rejected). The aggregate "playoffs cause more floor games" story is also dead after opponent adjustment. What survives is a **failure-mode taxonomy**:
 
-The public “choke” narrative is powered by a handful of unforgettable high-leverage catastrophes (Game 6 vs. Spurs 2017, Game 5 vs. Warriors 2015, Game 7 vs. Celtics 2023) that are real but **do not define the statistical distribution** of his playoff performance.
+1. **Contraction** (volume collapses) vs. **forcing** (volume preserved, efficiency collapses) — a novel game-level distinction (Screen E).
+2. **Contraction is a stable career trait** — RS FGA retention predicts PO FGA retention (r = 0.72). Harden's RS≈PO shift is −0pp on FGA retention; playoff contraction is not new behavior.
+3. **Three contractor subtypes** cut across Group A/B:
+   - **Trait contractor (Harden):** opponent-independent floors; elevated adj. floor rate (+7pp)
+   - **Rim-abandoning contractor (PG):** stable volume, catastrophic PO FTA collapse (−29pp)
+   - **Scheme-dependent contractor (SGA):** hardest PO contraction, entirely opponent-driven
+4. **Forcers** (Durant, Curry) keep shooting through bad nights.
 
----
+The honest Harden claim: **he contracts the same way in all bad games (RS or PO), has more floor games in the playoffs (partly opponent-driven), and those floors happen against weak defenses too — making them unpredictable.** The public "choke" narrative misdiagnoses mechanism (contraction, not clutch failure) and overweights memorable catastrophes that don't define the distribution.
+
+See [`open_questions.md`](open_questions.md) for resolved research decisions and remaining gaps.
 
 ## Research Question
 
@@ -32,38 +42,42 @@ Generalized: Do heliocentric offensive engines experience a playoff-specific inc
 
 ### Falsification
 
-If playoff floor-game rate is indistinguishable from regular season after opponent adjustment, the line is dead. Pass 1 does not opponent-adjust; that is Pass 2 scope.
+If playoff floor-game rate is indistinguishable from regular season after opponent adjustment, the line is dead. **Opponent adjustment has been run** (see Post-Pass-1 Extensions below): the cohort-wide playoff effect disappears, but Harden's opponent-independent contraction pattern persists.
 
 ---
 
 ## Sample & Methods
 
-### Players (11 total)
+### Players (18 total)
 
-**Group A — Heliocentric creators**
+**Original Pass 1 cohort (11)** — see Screen A–D tables below for per-player stats.
 
-| Player | RS games | PO games |
-|--------|----------|----------|
-| James Harden | 1,151 | 173 |
-| Russell Westbrook | 1,237 | 135 |
-| Luka Dončić | 450 | 55 |
-| Trae Young | 483 | 27 |
-| Allen Iverson | 914 | 71 |
-| Damian Lillard | 900 | 68 |
+**June 2026 expansion (7):** DeMar DeRozan, John Wall, Chris Paul, LeBron James, Kobe Bryant, Paul George, Shai Gilgeous-Alexander. Added to test contractor/forcer taxonomy, opponent-independent vs. scheme-dependent contraction, and minutes-contamination edge cases (Kobe).
 
-**Group B — Scalable stars**
+| Player | Group | RS games | PO games |
+|--------|-------|----------|----------|
+| James Harden | A | 1,151 | 173 |
+| Russell Westbrook | A | 1,237 | 135 |
+| Luka Dončić | A | 450 | 55 |
+| Trae Young | A | 483 | 27 |
+| Allen Iverson | A | 914 | 71 |
+| Damian Lillard | A | 900 | 68 |
+| DeMar DeRozan | A | 1,078 | 63 |
+| John Wall | A | 647 | 37 |
+| Chris Paul | A | 1,274 | 149 |
+| LeBron James | A | 1,562 | 282 |
+| Shai Gilgeous-Alexander | A | 462 | 46 |
+| Stephen Curry | B | 1,026 | 155 |
+| Klay Thompson | B | 865 | 158 |
+| Ray Allen | B | 1,300 | 171 |
+| Richard Hamilton | B | 921 | 130 |
+| Kevin Durant | B | 1,123 | 170 |
+| Kobe Bryant | B | 1,346 | 220 |
+| Paul George | B | 793 | 114 |
 
-| Player | RS games | PO games |
-|--------|----------|----------|
-| Stephen Curry | 1,026 | 155 |
-| Klay Thompson | 865 | 158 |
-| Ray Allen | 1,300 | 171 |
-| Richard Hamilton | 921 | 130 |
-| Kevin Durant | 1,123 | 170 |
+*Sample changes from original plan:* Kyrie Irving and Khris Middleton removed; Damian Lillard and Kevin Durant added (March 2026). Seven additional players added (June 2026).
 
-*Sample changes from original plan:* Kyrie Irving and Khris Middleton removed; Damian Lillard and Kevin Durant added (March 2026).
-
-**Total games in analysis table:** 11,683
+**Total games in analysis table:** ~20,000 (18,746 with opponent DEF_RATING joined)
 
 ### Floor-game definition
 
@@ -301,6 +315,10 @@ This is consistent with watching the iconic games: Game 6 vs. Spurs (10 pts, 2�
 
 The foul-whistle hypothesis (playoff officiating devalues his rim attacks) was considered but deprioritized based on game film — the data show FTA collapse alongside FGA collapse, which is consistent with **not attacking** rather than attacking without whistles.
 
+### Kobe reclassification (June 2026)
+
+Original Screen E labeled Kobe "shrinker" (vol_share 62%, min Δ −16.6). **This was wrong.** Half his floor games were blowout benchings (median 13.6 minutes). With ≥25-minute floor games: FGA retention 75% PO, FTA retention 52%. He keeps shooting jump shots that don't fall — **forcer with rim abandonment**, not contractor. Do not cite Kobe alongside Harden/PG as a contraction archetype without the minutes filter.
+
 ---
 
 ## Decision Matrix
@@ -312,25 +330,100 @@ The foul-whistle hypothesis (playoff officiating devalues his rim attacks) was c
 | **Borderline / not significant** | **Rejected** | **See below** |
 | Rejected | — | Line is dead |
 
-### Where we land
+### Where we land (updated June 2026)
 
-Per pre-registered criteria, Pass 1 does **not** clear the bar for proceeding to Pass 2 as originally designed. The research question is answered **in the negative** for the adaptation and clutch-concentration framings.
+Per **pre-registered** criteria (H1 χ² *p* < 0.05, H2 monotonic gradient, H3 top-3 floor-rate increase), Pass 1 does not clear the bar for the original adaptation/variance-shift thesis. H2 and leverage concentration are rejected outright.
+
+**June 2026 extensions reframed the project** without changing the raw Screen A–D results: opponent adjustment explains the cohort-wide playoff effect (but Harden retains +7.1pp adjusted increase); RS retention baselines show contraction is a stable trait; failure-mode taxonomy replaces heliocentric/scalable partition. Pass 2 proceeds as supporting evidence — see [`open_questions.md`](open_questions.md) §5.
 
 What survives is a **reframed finding**:
 
-> James Harden’s distinctive playoff problem is not that he has more bad games than peers, or that they cluster in elimination games, or that opponents figure him out over seven games. It is that **when he has a bad game, he disappears** — contracting usage, creation, and minutes simultaneously — whereas comparable stars tend to force shots (Durant) or stay on the floor (Curry).
+> James Harden’s distinctive playoff problem is not that opponents figure him out over seven games, or that his bad games cluster in elimination games. It is that **he contracts the same way in all bad games (RS or PO), has more floor games in the playoffs (partly opponent-driven), and those floors happen against weak defenses too** — whereas comparable stars tend to force shots (Durant) or contract only when elite defenses take away their driving lanes (SGA).
 
 ---
 
-## Limitations (Pass 1)
+## Post-Pass-1 Extensions (June 2026)
 
-1. **No opponent adjustment** — Playoff opponents are stronger; floor-rate inflation may partly reflect matchup quality, not a Harden-specific mechanism.
-2. **Small peer sample** — 11 players; Mann-Whitney tests underpowered; Cohen’s *d* = 0.72 on Group A vs. B is suggestive but *p* = 0.18.
-3. **Game Score is offense-only** — Does not capture Harden’s defensive variability.
-4. **Season-level opponent DEF_RATING** — No game-level or series-level defensive adjustment.
-5. **Age and team context** — Not controlled; Houston-era Harden carries most of the playoff sample.
-6. **Injury minutes** — Games with ≤15 minutes flagged but not excluded from primary analysis.
-7. **Leverage score is constructed** — Not a market- or win-probability-based leverage metric; sensitivity to definition not tested.
+### Opponent-adjusted floor rates (`screen_a_adj.py`)
+
+Logistic regression: `is_floor ~ is_playoff + def_rating + player FE` on 18,746 games with opponent DEF_RATING (93% coverage).
+
+| Coefficient | Result |
+|-------------|--------|
+| `is_playoff` | OR = 0.98, *p* = 0.83 — **no residual playoff effect** |
+| `def_rating` | OR = 0.95 per point, *p* < 10⁻²⁴ — stronger defenses *reduce* floor-game odds |
+
+**Harden deep dive:** floors vs weak (33%), average (16%), strong (16%) defenses. OLS `is_floor ~ def_rating`: coef = −0.014, *p* = 0.066, R² = 0.02. **Opponent quality does not explain Harden's floors** — he floors against weak defenses at the same rate as strong ones.
+
+**Adjusted floor-rate increases (top 4):** Trae Young +12.3pp, Lillard +8.2pp, Harden +7.1pp, Ray Allen +7.0pp.
+
+### RS retention baselines (`rs_retention_baseline.py`)
+
+FGA retention = (FGA/36 in floor games) / (FGA/36 in non-floor games). Same for FTA and minutes.
+
+**Harden (stable trait):**
+
+| Metric | RS | Playoffs | Shift |
+|--------|-----|----------|-------|
+| FGA retention | 75% | 74% | −0pp |
+| FTA retention | 57% | 60% | +3pp |
+
+**Paul George (rim abandonment in playoffs):**
+
+| Metric | RS | Playoffs | Shift |
+|--------|-----|----------|-------|
+| FGA retention | 76% | 72% | −4pp |
+| FTA retention | 54% | 25% | **−29pp** |
+
+**SGA (scheme-dependent, small n):**
+
+| Metric | RS | Playoffs | Shift |
+|--------|-----|----------|-------|
+| FGA retention | 72% | 53% | −19pp |
+| Floor rate vs weak/strong D | 39% / 0% | — | opponent-driven (*p* = 0.001) |
+
+**Trait stability:** RS FGA retention → PO FGA retention: Pearson r = 0.72, *p* = 0.0008 (n = 18). No cohort-wide PO intensification (mean shift −3.2pp, *p* = 0.08).
+
+**Kobe reclassification:** Original Screen E labeled Kobe "shrinker" (vol_share 62%, min Δ −16.6). With ≥25-minute floor games: FGA retention 80% PO, FTA retention 52%. He keeps shooting jump shots that don't fall — **forcer with rim abandonment**, not contractor. Minute collapse was blowout benching (median 13.6 min in floor games).
+
+### Event frequency (`pass2/event_frequency.py`)
+
+69-game PBP sample; Event A = ≤1 FGM on ≥5 Q1–Q2 FGA.
+
+| Metric | Value |
+|--------|-------|
+| Event A rate (eligible) | 14.5% |
+| Projected Event A (cohort) | ~138 |
+| Combined Events A + B | ~273 |
+| Harden projected Event A | ~14 (adequate) |
+| SGA, Luka, Trae | ~2–3 (underpowered) |
+
+**Decision:** Pass 2 feasible as supporting illustration for top 5–6 stars; not primary identification strategy.
+
+### Contractor / forcer taxonomy (refined)
+
+| Archetype | Players | Key signature |
+|-----------|---------|---------------|
+| Trait contractor | Harden | RS≈PO contraction; opponent-independent floors |
+| Rim-abandoning contractor | Paul George | Stable FGA; PO FTA collapse −29pp |
+| Scheme-dependent contractor | SGA | Hardest PO contraction; 0% floor vs strong D |
+| Forcer | Durant, Curry, Iverson | FGA retention >90%; efficiency collapse |
+| Inverse contractor | Westbrook, CP3 | Floor *more* vs weak D (disengagement when not forced) |
+
+**Rejected:** "FTA dependency → contraction" as simple rule. SGA has highest FTA dependency and contracts hardest — but entirely opponent-driven.
+
+---
+
+## Limitations
+
+1. ~~**No opponent adjustment**~~ — **Done.** Cohort effect explained; Harden-specific pattern persists.
+2. **Peer sample still modest** — 18 players; PG (17 PO floor games), SGA (8) underpowered for structural claims.
+3. **Game Score is offense-only** — Does not capture defensive variability.
+4. **Season-level opponent DEF_RATING** — No game-level or series-level scheme adjustment.
+5. **Age and team context** — Not controlled.
+6. **Minutes contamination** — Partially addressed (≥25 min filter); possession-level decontamination still needed.
+7. **No causal chain** — Contraction → team ORtg → wins untested.
+8. **Leverage score is constructed** — Not WP-based.
 
 ---
 
@@ -341,25 +434,26 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 - Player IDs corrected; Unicode normalization for Dončić name verification
 - Per-player scrape isolation with cooldown on failure
 - Stale raw/processed data purged and full pipeline re-run
-- Final sample: 11 players, 11,683 games, all screens A–E passing
+- Final Pass 1 sample (March 2026): 11 players, 11,683 games, all screens A–E passing
+- June 2026 expansion: 18 players, ~20,000 games; extensions added (`screen_a_adj.py`, `rs_retention_baseline.py`, `event_frequency.py`)
 
 ---
 
 ## Suggested Next Steps
 
-### If continuing the project
+### Priority order (June 2026)
 
-1. **Pass 2 regression** — Opponent-adjusted floor probability: `is_floor ~ is_playoff + opponent_defrtg + rest_days + series_game_num + player FE`
-2. **Refine mechanism** — Add `USG%` from advanced logs; test shrinkage as usage-rate drop, not just FGA/36
-3. **Bimodality** — Hartigan’s dip test or mixture model on Harden’s playoff Game Score distribution
-4. **Expand sample** — 15–20 players per group to test whether Group A > Group B reaches significance without Ray Allen–type outliers
-5. **Win-probability leverage** — Replace constructed leverage score with explicit WP or elimination-only subsets
+1. **Causal chain** — In contraction games, team ORtg and win rate vs. non-contraction games; control for score margin
+2. **Pass 2 at scale** — Same-game pre-event baselines on ~273 combined cold-start events
+3. **Out-of-sample validation** — Train profile on career first half, test on second half
+4. **Expand cohort** — Embiid, Butler, Mitchell to test PG/Harden category robustness
+5. **Minutes decontamination** — Possession-level "on-floor contraction" vs. benching
 
 ### If writing up now
 
-The honest paper is not “Harden chokes in the clutch.” It is:
+The honest paper is not "Harden chokes in the clutch." It is:
 
-**“Playoff floor games among high-usage creators: a profile analysis”** — with Harden as the lead case study showing contraction/disengagement as a distinct failure mode from efficiency-collapse (Durant) or mean-regression (Curry).
+**"Failure modes under adversity: contraction vs. forcing among NBA stars"** — documenting a novel taxonomy, showing contraction is a stable trait, and distinguishing opponent-independent contractors (Harden, PG) from scheme-dependent ones (SGA) and forcers (Durant, Curry).
 
 ---
 
@@ -367,16 +461,21 @@ The honest paper is not “Harden chokes in the clutch.” It is:
 
 | File | Description |
 |------|-------------|
+| `data/processed/analysis_table.csv` | Full game-level table (~20k rows) |
 | `data/processed/screen_a_results.csv` | Variance shift per player |
+| `data/processed/screen_a_adj_results.csv` | Opponent-adjusted floor rates |
+| `data/processed/retention_baselines.csv` | RS vs PO FGA/FTA/min retention |
 | `data/processed/screen_b_results.csv` | Within-series floor rates |
 | `data/processed/screen_c_results.csv` | Peer rankings |
 | `data/processed/screen_d_results.csv` | Leverage concentration |
 | `data/processed/screen_e_results.csv` | Floor-game mechanism profiles |
-| `data/processed/analysis_table.csv` | Full game-level table |
-| `pass1_plan.md` | Original research design |
+| `data/processed/event_frequency_estimates.csv` | Pass 2 Event A/B projections |
+| `documents/development/DEVELOPER.md` | Onboarding — setup, pipeline, what's done vs. open |
+| `documents/development/pass1_plan.md` | Original research design |
+| `documents/development/open_questions.md` | Resolved decisions + remaining gaps |
 
 ---
 
 ## One-Paragraph Summary
 
-James Harden’s playoff floor-game rate rises from 15% to 21% (variance shift ratio 1.52, χ² *p* = 0.067), but he is not a statistical outlier — Ray Allen shows a larger and significant shift, and the heliocentric group difference is medium-sized but not significant at *n* = 11. Floor games do not compound late in series (H2 rejected) and do not cluster in high-leverage moments (Harden ranks 7th of 11 on leverage concentration; elimination-game floor rate is 14.6% vs. 23.2% otherwise). What distinguishes Harden is the **profile** of his bad games: a 54% per-36 scoring collapse driven roughly equally by volume and efficiency loss, with large drops in FGA, FTA, assists, and minutes — a pattern of offensive disengagement that contrasts sharply with Kevin Durant’s “keep shooting” floor games and differs from the public narrative of clutch failure.
+James Harden's raw playoff floor-game rate rises from 15% to 22% (χ² *p* = 0.067), but after opponent adjustment the cohort-wide playoff effect disappears (*p* = 0.83) while Harden retains a +7pp adjusted increase with opponent-independent floors (33% vs weak defenses, 16% vs strong). His contraction is not playoff-specific — FGA retention is 75% RS and 74% PO — but it is a stable career trait (r = 0.72 across the cohort) that distinguishes him from forcers like Durant (97% FGA retention in PO floor games). Paul George shares the opponent-independent contraction pattern but via rim abandonment (FTA retention 54%→25% in playoffs); SGA shares the contraction symptom but via scheme dependence (0% floor rate vs strong defenses). Floor games do not compound late in series (H2 rejected) or cluster in elimination games (Harden: 15% elim vs 23% non-elim). The public "choke" narrative misdiagnoses a structural failure mode — contraction under adversity — as clutch psychology.

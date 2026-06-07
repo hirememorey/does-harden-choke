@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-b screen-c visualize all clean test-client smoke-scrape
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency
 
 venv:
 	python3 -m venv .venv
@@ -27,6 +27,18 @@ features:
 
 screen-a:
 	$(PYTHON) src/screen_a.py
+
+screen-a-adj:
+	$(PYTHON) src/screen_a_adj.py
+
+screen-e:
+	$(PYTHON) src/screen_e.py
+
+retention:
+	$(PYTHON) src/rs_retention_baseline.py
+
+event-frequency:
+	$(PYTHON) src/pass2/event_frequency.py
 
 screen-b:
 	$(PYTHON) src/screen_b.py

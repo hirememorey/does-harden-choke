@@ -1,4 +1,6 @@
-# Does Harden Choke?
+# Does Harden Choke? — Pass 1 Plan
+
+> **Status (June 2026):** Pass 1 **complete** for the original 11-player cohort. Cohort expanded to **18 players** with three extension scripts (`screen_a_adj.py`, `rs_retention_baseline.py`, `screen_e.py` re-run). For current results see [`findings.md`](findings.md). For onboarding see [`DEVELOPER.md`](DEVELOPER.md). This document preserves the **original research design** — some conclusions below are superseded by June 2026 extensions (especially opponent adjustment and RS retention baselines).
 
 ## Research Question
 

@@ -1,58 +1,160 @@
-# Open Questions — Resolve Before Proceeding
+# Open Questions — Status
 
 **Date:** June 2026  
-**Context:** Pass 1 complete, Pass 2 possession parser validated, cold-start spike analysis run on Harden and Kobe. The pipeline works. The research direction needs sharpening before scaling.
+**Context:** Pass 1 complete and extended. Five pre-scaling questions from March 2026 are **resolved below**. Remaining gaps are listed at the end.
+
+Evidence lives in [`findings.md`](findings.md). Onboarding: [`DEVELOPER.md`](DEVELOPER.md). Scripts: `src/screen_a_adj.py`, `src/rs_retention_baseline.py`, `src/pass2/event_frequency.py`.
 
 ---
 
-## 1. What is the actual thesis — player-specific or structural?
+## 1. Player-specific or structural?
 
-Pass 1 found that Harden's floor games are "disengagement events" (everything contracts). The spike work showed he sometimes forces instead. Is the claim about **James Harden specifically**, or about a **class of offensive structure** (heliocentric creators) that produces catastrophic variance as a systemic feature?
+**Status: RESOLVED — hybrid claim**
 
-If it's Harden-specific, it's a blog post. If it's structural — "heliocentric offensive systems produce a distinct failure mode under adversity that scalable systems do not" — it's a Sloan paper.
+**Decision:** Neither pure Harden case study nor pure Group A/B structural claim. The honest frame is a **failure-mode taxonomy** with structural predictors that cut across the original groups.
 
-**Decision needed:** Which claim are we making?
+| Finding | Implication |
+|---------|-------------|
+| Group A vs B floor-rate difference not significant (*p* = 0.18, *d* = 0.72) | Heliocentric/scalable partition is a weak proxy for mechanism |
+| Ray Allen (Group B) had largest raw floor-rate increase | Original structural partition fails |
+| Three contractor subtypes identified | Structure matters, but via FTA dependency + opponent independence, not heliocentrism |
+
+**Three contractor archetypes:**
+
+| Archetype | Players | Signature |
+|-----------|---------|-----------|
+| **Trait contractor** | Harden | Stable RS≈PO contraction; floors opponent-independent; elevated adj. floor rate (+7pp) |
+| **Rim-abandoning contractor** | Paul George | Stable FGA retention; catastrophic PO FTA collapse (54%→25%); floors opponent-independent |
+| **Scheme-dependent contractor** | SGA | Hardest PO contraction (72%→53% FGA retention, n=8); floors entirely opponent-driven (*p* = 0.001) |
+
+**Forcers** (Durant, Curry, Iverson) preserve volume; efficiency collapses.
+
+**Paper tier:** Structural taxonomy with Harden as lead case — not Sloan-level "heliocentric systems fail" claim.
 
 ---
 
 ## 2. What is the novel contribution?
 
-"Stars play worse in the playoffs" is known. "Harden chokes" is a media narrative. Neither is a research finding. The Pass 1 insight that survived — that Harden's floor games are **contraction events** (volume collapse) rather than **inefficiency events** (volume-preserved, efficiency collapse) — is genuinely novel. But it needs a sharper frame:
+**Status: RESOLVED**
 
-- Is the finding that **the type of failure mode predicts something downstream** (series outcome, team offensive rating, future performance)?
-- Is it that **offensive structure determines failure mode**, not individual psychology?
-- Is it that **the public "choke" narrative systematically misdiagnoses what's actually happening**?
+**One-sentence claim:**
 
-**Decision needed:** A one-sentence claim that a Sloan reviewer reads and thinks "I need to see the evidence for that."
+> Under playoff adversity, a star's offensive structure — not psychology — determines whether they contract, force, or redistribute; contraction events are the failure mode the public misreads as "choking," and whether contraction is opponent-independent distinguishes unpredictable playoff risk (Harden, PG) from gameplan-able scheme vulnerability (SGA).
 
----
+**What is novel (confirmed by data):**
 
-## 3. What is the unit of analysis and does the sample support it?
+1. **Failure-mode taxonomy** — contraction vs. forcing vs. mixed at game level (Screen E)
+2. **Contraction is a stable trait** — RS FGA retention predicts PO FGA retention (r = 0.72, *p* < 0.001)
+3. **Opponent adjustment kills aggregate playoff effect** — but Harden/PG floors persist against weak defenses
+4. **Public narrative misdiagnosis** — Harden's floors are not clutch-concentrated (Screen D); elimination-game floor rate *lower* than non-elimination
 
-Pass 1 operated at the **game level** and found borderline statistical significance (*p* = 0.067 on the floor-rate shift, underpowered group comparison at *p* = 0.18). The spike work operates at the **possession level** but has N=2 per player — pure anecdote.
+**What is NOT yet novel (needs more work):**
 
-Before writing more code, estimate: across 9 star players and ~50–170 playoff games each, **how many Cold Start events will fire?** If Event A (1-for-5 in Q1/Q2) fires in ~15–20% of playoff games, that's roughly 10–30 events per player, or 100–250 across the cohort. That's enough for within-player profiles and cross-player comparison. If it fires in 5% of games, we're underpowered and need to loosen the trigger or combine event types.
-
-This is an arithmetic question answerable from the existing box score CSVs without touching the PBP pipeline at all.
-
-**Decision needed:** Estimate cold-start event frequency from existing data. If underpowered, adjust the trigger threshold or combine event types before building the pipeline.
+- "Failure mode predicts series outcome" — causal chain untested
+- "FTA dependency → contraction" as simple rule — SGA refutes it (highest FTA dependency, scheme-dependent)
 
 ---
 
-## 4. What is the counterfactual?
+## 3. Sample size — event frequency sufficient?
 
-"Harden's usage drops after a cold start" — compared to what? The spike script compares post-event to pre-event within the same game. But that conflates the adversity response with game-state effects (score margin, pace, opponent adjustment). The design spec's baseline matching (pass2_design_spec.md §3) exists for this reason, but it's heavy machinery.
+**Status: RESOLVED — adequate for top stars, marginal for others**
 
-The simpler question: do we need **within-game baselines** (same game, pre-event possessions in similar score margin), or is **cross-game comparison** sufficient (same player's non-cold-start games as the control)? Within-game is cleaner identification but smaller samples. Cross-game is noisier but statistically powerful.
+**Method:** `src/pass2/event_frequency.py` — Event A (≤1 FGM on ≥5 Q1–Q2 FGA) detected on 69-game PBP sample; projected to full cohort via box-score cross-check.
 
-**Decision needed:** Choose the baseline strategy before building the matching infrastructure.
+| Metric | Value |
+|--------|-------|
+| Event A rate (eligible players, PBP) | 14.5% |
+| Event A rate (stars, effective) | ~10% per playoff game |
+| Projected Event A (18-player cohort) | ~138 |
+| Projected Events A + B combined | ~273 |
+
+**Per-player power (Event A projections):**
+
+| Tier | Players | Events |
+|------|---------|--------|
+| Adequate (≥10) | Harden (~14), LeBron (~16), Kobe (~12), Westbrook (~11), Ray Allen (~11), Klay (~10) | Within-player profiles feasible |
+| Marginal (5–9) | Durant, Curry, CP3, PG, Iverson, Lillard, Hamilton (~8 each) | Pooled analysis only |
+| Underpowered (<5) | Luka, Trae, Wall, DeRozan, SGA (~2–4) | Combine event types or expand RS sample |
+
+**Decision:** Proceed with Pass 2 as **supporting illustration**, not primary identification. Event B (consecutive empty trips) supplements Event A for underpowered players.
 
 ---
 
-## 5. Is Pass 2 (possession-grain) actually necessary, or can Pass 1 (game-grain) answer the question with better methodology?
+## 4. Within-game vs. cross-game baselines?
 
-The spike work produced vivid case studies. But the core finding — that Harden's floor games are contraction events — was already visible at the game level in Pass 1. The possession grain adds **mechanism** (what happens in the 8 possessions after a cold start), but mechanism is only valuable if the **top-level claim** is established first.
+**Status: RESOLVED — same-game pre-event primary**
 
-If the game-level claim is borderline (*p* = 0.067), adding possession-level color doesn't rescue it. It might be more productive to **strengthen the game-level analysis** first — add opponent adjustment, expand the player sample, tighten the floor-game definition — and use the possession-grain spike as illustrative evidence rather than the primary identification strategy.
+**Decision:** Same-game, pre-event possession pool as primary baseline (per `pass2_design_spec.md` §3). Cross-game baseline as sensitivity check only.
 
-**Decision needed:** Decide whether Pass 2 is the primary analysis or a supporting illustration. If supporting, invest in strengthening Pass 1 first.
+**Rationale:**
+
+- Cross-game baseline confounds adversity response with between-game variance
+- Event A typically fires after 15–25 team possessions → 8+ baseline possessions available
+- `baseline_underpowered` flag handles edge cases
+
+**Open refinement (not yet implemented):** Exclude 3–5 possessions immediately preceding the event trigger from baseline pool — those possessions are part of the cold stretch, not neutral pre-event behavior.
+
+---
+
+## 5. Is Pass 2 necessary?
+
+**Status: RESOLVED — supporting, not primary**
+
+**Decision:** Pass 1 (strengthened) is the primary analysis. Pass 2 is vivid mechanism evidence.
+
+**What Pass 1 now answers (after extensions):**
+
+| Extension | Script | Key result |
+|-----------|--------|------------|
+| Opponent adjustment | `screen_a_adj.py` | Cohort playoff effect disappears (*p* = 0.83); Harden floors not opponent-explained |
+| RS retention baselines | `rs_retention_baseline.py` | Harden RS≈PO contraction (−0pp FGA shift); trait not playoff invention |
+| Mechanism taxonomy | `screen_e.py` | Contraction vs forcing distinguished; Kobe misclassified (minutes contamination) |
+| Event frequency | `event_frequency.py` | ~273 combined events — enough for case studies |
+
+**Pass 2 adds:** possession-level behavioral sequence after cold start (usage drop timing, redistribution collapse). Valuable for mechanism color; does not rescue borderline *p* = 0.067 on raw floor-rate shift (which opponent adjustment reframes anyway).
+
+---
+
+## Remaining work (not yet answered)
+
+These block the "who to avoid in the playoffs" practical claim:
+
+### A. Causal chain to team outcomes
+
+Does contraction → team ORtg drop → lost games? Need score-margin control at time of contraction, not just game-level floor flag.
+
+### B. Minutes decontamination at possession level
+
+Separate "player stops attacking" from "coach benches player." Kobe reclassification showed game-level metrics conflate these. Pass 2 possession data is the right resolution.
+
+### C. Out-of-sample validation
+
+Train contraction profile on career first half; test floor-rate and retention stability on second half. PG (17 PO floor games) and SGA (8) need larger samples before structural claims.
+
+### D. Series-level defensive data
+
+Season-average DEF_RATING is coarse. SGA's opponent-driven pattern may reflect series-specific schemes invisible in season averages.
+
+### E. Pass 2 at scale
+
+Run same-game pre-event baseline matching on full event set (~273 events). Parser validated; scaling is engineering, not research design.
+
+### F. Expand cohort
+
+Embiid, Butler, Mitchell, Booker — test whether PG/Harden opponent-independent contractor category replicates.
+
+---
+
+## Decision log
+
+| Date | Decision |
+|------|----------|
+| Mar 2026 | Pass 1 complete; adaptation hypothesis (H2) rejected |
+| Mar 2026 | Five open questions drafted before scaling |
+| Jun 2026 | Opponent adjustment run; aggregate playoff effect explained by matchup quality |
+| Jun 2026 | RS retention baselines run; contraction is stable trait |
+| Jun 2026 | Event frequency computed; Pass 2 feasible as illustration |
+| Jun 2026 | SGA added; three-way contractor split confirmed |
+| Jun 2026 | Kobe reclassified (forcer with rim abandonment, not shrinker) |
+| Jun 2026 | Thesis reframed: failure-mode taxonomy + opponent independence |
+| Jun 2026 | `DEVELOPER.md` added; documentation sweep for handoff |

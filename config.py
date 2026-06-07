@@ -27,6 +27,8 @@ GROUP_A = {
     "John Wall": {"nba_id": 202322, "bbref_id": "walljo01"},
     "Chris Paul": {"nba_id": 101108, "bbref_id": "paulch01"},
     "LeBron James": {"nba_id": 2544, "bbref_id": "jamesle01"},
+    # FTA-dependent contractor contrast (scheme-dependent vs Harden/PG)
+    "Shai Gilgeous-Alexander": {"nba_id": 1628983, "bbref_id": "gilgesh01"},
 }
 
 # Group B — Scalable stars (lower self-creation burden, more off-ball)
