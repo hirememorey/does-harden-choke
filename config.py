@@ -29,6 +29,19 @@ GROUP_A = {
     "LeBron James": {"nba_id": 2544, "bbref_id": "jamesle01"},
     # FTA-dependent contractor contrast (scheme-dependent vs Harden/PG)
     "Shai Gilgeous-Alexander": {"nba_id": 1628983, "bbref_id": "gilgesh01"},
+    # Playoff riser contrast — perceived elite playoff performer; situational contractor
+    "Jimmy Butler": {"nba_id": 202710, "bbref_id": "butleji01"},
+    # Expansion — big/off-ball heliocentric engines + playmaking creators
+    "Joel Embiid": {"nba_id": 203954, "bbref_id": "embiijo01"},
+    "Ben Simmons": {"nba_id": 1627732, "bbref_id": "simmobe01"},
+    "Jalen Brunson": {"nba_id": 1628973, "bbref_id": "brunsja01"},
+    "Tyrese Haliburton": {"nba_id": 1630169, "bbref_id": "halibty01"},
+    "Giannis Antetokounmpo": {"nba_id": 203507, "bbref_id": "antigia01"},
+    "Nikola Jokic": {"nba_id": 203999, "bbref_id": "jokicni01"},
+    # "Choker" to champion — testing whether narrative flip reflects trigger change or system change
+    "Dirk Nowitzki": {"nba_id": 1717, "bbref_id": "nowitdi01"},
+    # Speed-dependent heliocentric creator — rim pressure + playmaking guard
+    "De'Aaron Fox": {"nba_id": 1628368, "bbref_id": "foxde01"},
 }
 
 # Group B — Scalable stars (lower self-creation burden, more off-ball)
@@ -41,6 +54,14 @@ GROUP_B = {
     # Expansion — forcer archetypes + scalable wing shrinker candidate
     "Kobe Bryant": {"nba_id": 977, "bbref_id": "bryanko01"},
     "Paul George": {"nba_id": 202331, "bbref_id": "georgpa01"},
+    # Expansion — scalable wing creator
+    "Jayson Tatum": {"nba_id": 1628369, "bbref_id": "tatumja01"},
+    # Secondary scorer — scheme-dependent floor hypothesis
+    "Tobias Harris": {"nba_id": 202699, "bbref_id": "harrito02"},
+    # Clutch god narrative vs. data — most polarizing playoff guard of his generation
+    "Kyrie Irving": {"nba_id": 202681, "bbref_id": "irvinky01"},
+    # Bimodal riser/shrinker hypothesis — spectacular peaks and invisible valleys
+    "Donovan Mitchell": {"nba_id": 1628378, "bbref_id": "mitchdo01"},
 }
 
 ALL_PLAYERS = {**GROUP_A, **GROUP_B}
@@ -52,7 +73,7 @@ PLAYER_GROUP.update({name: "B" for name in GROUP_B})
 FLOOR_GAME_PERCENTILE = 15
 FLOOR_GAME_SD_CUTOFF = 1.5
 MIN_RS_GAMES = 50
-SEASON_START_YEARS = list(range(1996, 2025))  # 1996-97 through 2024-25
+SEASON_START_YEARS = list(range(1996, 2026))  # 1996-97 through 2025-26
 SERIES_GAP_DAYS = 7
 
 # Color scheme

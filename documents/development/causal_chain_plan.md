@@ -1,37 +1,43 @@
-# Causal Chain Plan — Does Failure Mechanism Predict Team Outcomes?
+# Causal Chain Plan — Does Floor-Game Mechanism Predict Team Outcomes?
 
-**Date:** June 2026 (revised from original CC1–CC4 framing)  
-**Status:** Step 0 **complete**; Steps 1–4 **not started**  
-**Blocks:** The practical claim that failure mode predicts team outcomes (`open_questions.md` §A)
+**Date:** June 2026 (revised from mechanism-framing to trigger-framing; **trigger framing retired June 14, 2026**)
+**Status:** Step 0 **complete**; Steps 1–4 **not started**; needs revision for architecture-prediction framing
+**Blocks:** The practical claim that scoring architecture predicts team outcomes (`open_questions.md` §H)
+
+> **NOTE (June 14, 2026):** The trigger taxonomy (Screen F) failed Phase A split-sample validation (31% concordance) and is retired as the primary axis. This document's trigger-type hypotheses (H1: opponent-independent floors are worse; H2: disengagement floors are less damaging) are no longer viable as stated. The data infrastructure (Step 0) and the per-game `fga_retention` / `fta_retention` secondary analysis remain valid. The next developer should revise Steps 1–4 to test **architecture variables** (FGA retention, FTA dependency, scoring-mode concentration, rim-abandonment index) rather than trigger-type categories. See `DEVELOPER.md` §H and `open_questions.md` §H for the revised framing.
 
 ---
 
 ## Revision history
 
-The original version of this document (June 2026) framed the causal chain as CC1–CC4: floor games have lower team ORtg (CC1), lower win rate (CC2), contraction amplifies these (CC3), and the effect persists after score-margin control (CC4).
+The original version of this document (June 2026) framed the causal chain around failure mechanism (contraction vs. forcing) predicting team outcomes.
 
-**Problem:** CC1 and CC2 are mechanically obvious. Floor games are defined by bad individual performance, and bad individual performance from a star hurts the team. That result is tautological regardless of *how* the player fails. It is a sanity check, not a contribution.
+**First revision** (June 2026): CC1/CC2 demoted to validation gates; primary analysis restricted to floor games; continuous `fga_retention` replaces binary mechanism indicator.
 
-**Revised framing:** The interesting question from Pass 1 is not whether bad games are bad, but whether the *type* of bad game matters. Pass 1 showed Harden contracts and Durant forces. This extension tests whether that distinction has team-level consequences — and in which direction.
+**Second revision** (June 2026): Pivoted from mechanism to trigger as primary axis. The contractor/forcer taxonomy (Screen E) answered its question but is not the headline. Butler and DeRozan showed that mechanism (contraction vs. forcing) and frequency (how often floor games occur) are independent — two players can share the same mechanism with opposite frequency patterns. The differentiator is the *trigger*: what conditions produce floor games. Screen F classifies players into trigger types (opponent-independent, scheme-dependent, disengagement, bimodal, standard). The causal chain now tests whether trigger type predicts team outcomes. The per-game `fga_retention` regressions are retained as a secondary analysis.
+
+**Problem with mechanism-first framing:** Asking "does contraction vs. forcing predict team ORtg?" is interesting but secondary. A GM doesn't care *what* happens in Harden's bad games — they care *whether* those bad games will happen and *when*. Trigger type answers that directly. An opponent-independent trigger means risk is unpredictable; a disengagement trigger means it's manageable with the right system.
+
+**Revised framing:** The primary question is whether trigger type predicts team outcomes. Do opponent-independent floor games hurt teams more than scheme-dependent ones? Does disengagement-triggered contraction have different team consequences than opponent-independent contraction?
 
 ---
 
 ## Research question (revised)
 
-> Among floor games by high-usage stars, does the mechanism of failure — contraction (reduced volume, minutes, and creation) vs. forcing (preserved volume despite inefficiency) — predict team offensive outcomes, after controlling for individual performance quality?
+> Among floor games by high-usage stars, does the trigger type — opponent-independent, scheme-dependent, disengagement-dependent, bimodal, or standard — predict team offensive outcomes, after controlling for individual performance quality?
 
-Pass 1 established *that* players fail differently. This extension tests whether those differences *matter* for team success.
+Screen F established *why* players floor differently. This extension tests whether those trigger differences *matter* for team success — and how much.
 
-### Why this question matters
+### Why trigger type matters more than mechanism
 
-If mechanism predicts team outcomes net of individual performance quality:
-- Front offices can price playoff risk differently for contractors vs. forcers with similar regular-season value
-- Coaching staffs can design interventions (force-feed a contracted star vs. redistribute away from a forcing star)
-- The "choker" narrative becomes not just mechanistically wrong (Pass 1) but consequentially wrong or right in a specific, measurable direction
+If trigger type predicts team outcomes net of individual performance quality:
+- Front offices can price playoff risk based on *predictability* of floor games, not just frequency — an opponent-independent trigger (Harden) is ungameable risk; a disengagement trigger (Butler) is system-manageable
+- Coaching staffs can design interventions matched to trigger type — keep a disengagement player involved vs. scheme against a scheme-dependent one
+- The "choker" narrative is reframed: the problem isn't what happens in bad games, it's whether you can prevent the bad games from happening
 
-If mechanism does NOT predict team outcomes:
+If trigger type does NOT predict team outcomes:
 - The taxonomy is descriptively interesting but not actionable for scouting
-- The paper contribution is Pass 1 only (taxonomy + trait stability)
+- The paper contribution is the taxonomy itself (Screen F) plus trait stability (retention baselines)
 
 ---
 
@@ -46,19 +52,23 @@ If mechanism does NOT predict team outcomes:
 
 Run these in Step 2 as two-line checks. If either fails, something is broken in the data join. Do not present as findings.
 
-### Primary hypotheses (test all three symmetrically)
+### Primary hypotheses (trigger type → team outcomes)
 
 | ID | Claim | Prediction |
 |----|-------|------------|
-| **H1: Contraction is worse** | When a star contracts in a floor game, the offense has no anchor, role players cannot step up effectively, and team ORtg collapses further than it would under forcing | Negative coefficient on `fga_retention` — lower retention (more contraction) predicts *lower* team ORtg, controlling for individual performance |
-| **H2: Forcing is worse** | When a star forces through inefficiency, they consume possessions that could have gone to teammates, compounding the damage | Positive coefficient on `fga_retention` — lower retention (more contraction) predicts *higher* team ORtg, i.e. contraction is actually better |
-| **H3: No difference** | Team outcome is determined by individual performance quality, not mechanism | Coefficient on `fga_retention` is not significant after controlling for `game_score` |
+| **H1: Opponent-independent floors are worse** | When a star floors regardless of opponent quality, the team has no counter — you can't scheme around an unpredictable trigger, and contraction leaves the offense anchorless | Opponent-independent trigger players show lower team ORtg in floor games than other trigger types, controlling for individual performance |
+| **H2: Disengagement floors are less damaging** | When a star floors due to disengagement, the system can compensate — other players step up, and the trigger is manageable with coaching | Disengagement trigger players show higher team ORtg in floor games than opponent-independent players |
+| **H3: No difference by trigger type** | Team outcome is determined by individual performance quality, not trigger pattern | Trigger type has no predictive power after controlling for `game_score` |
 
-**Prior expectation:** H1 (contraction is worse) based on the disengagement pattern in Screen E. But H2 is genuinely plausible — contraction may be rational redistribution to competent teammates. Test all three before assuming the sign.
+**Prior expectation:** H1 (opponent-independent is worse) based on the disengagement/contraction mechanism and the observation that Butler's Miami system suppresses floors entirely. But H2 is plausible — if contraction is rational redistribution, the trigger type may not matter for team outcomes.
+
+### Secondary analysis (mechanism → team outcomes, within floor games)
+
+The per-game `fga_retention` regressions from the prior framing are retained as secondary. Among floor games, does the degree of contraction (continuous FGA retention) predict team ORtg? This tests whether *what happens* in a floor game matters net of *why it happened*. Same H1/H2/H3 structure as before but with `fga_retention` as the IV.
 
 ### Falsification
 
-If `fga_retention` has no predictive power for team ORtg after controlling for `game_score` and player fixed effects (H3 confirmed), the taxonomy is descriptive only. The paper is still publishable on Pass 1 findings but cannot make scouting claims.
+If trigger type has no predictive power for team ORtg after controlling for `game_score` and player fixed effects (H3 confirmed), the taxonomy is descriptive only. The paper is still publishable on the trigger taxonomy (Screen F) plus trait stability but cannot make scouting claims about predictability of risk.
 
 ---
 
@@ -487,3 +497,4 @@ Regardless of H1/H2/H3 outcome, note:
 | Jun 2026 | **Revised:** CC1/CC2 demoted to validation gates; primary analysis restricted to floor games; continuous `fga_retention` replaces binary mechanism indicator; player FE + `game_score` control isolate within-player mechanism variation |
 | Jun 2026 | **Revised:** Test H1 (contraction worse), H2 (forcing worse), H3 (no difference) symmetrically — do not assume contraction is harmful |
 | Jun 2026 | **Revised:** Pass 2 temporal ordering identified as strongest available mitigation for reverse causality |
+| Jun 2026 | **Revised:** Pivoted from mechanism to trigger as primary axis; Screen F trigger classification replaces Screen E mechanism labels as headline; per-game `fga_retention` retained as secondary analysis |

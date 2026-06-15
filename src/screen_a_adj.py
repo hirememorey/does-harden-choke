@@ -28,10 +28,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
-def opponent_quality_stratification(df: pd.DataFrame) -> None:
-    po = df[df["is_playoff"] & df["def_rating_y"].notna()].copy()
+def _def_col(df: pd.DataFrame) -> str:
+    if "opponent_defrtg" in df.columns and df["opponent_defrtg"].notna().sum() > 0:
+        return "opponent_defrtg"
+    return "def_rating_y"
 
-    def_rating_bins = pd.qcut(po["def_rating_y"], q=3, labels=["weak", "average", "strong"])
+
+def opponent_quality_stratification(df: pd.DataFrame) -> None:
+    col = _def_col(df)
+    po = df[df["is_playoff"] & df[col].notna()].copy()
+
+    def_rating_bins = pd.qcut(po[col], q=3, labels=["weak", "average", "strong"])
     po["opp_quality"] = def_rating_bins
 
     print("\n=== Opponent Quality Stratification ===\n")
@@ -70,15 +77,15 @@ def opponent_quality_stratification(df: pd.DataFrame) -> None:
 
 
 def logistic_regression_adjusted(df: pd.DataFrame) -> pd.DataFrame:
-    po = df[df["is_playoff"] & df["def_rating_y"].notna()].copy()
-    rs = df[~df["is_playoff"] & df["def_rating_y"].notna()].copy()
+    col = _def_col(df)
+    po = df[df["is_playoff"] & df[col].notna()].copy()
+    rs = df[~df["is_playoff"] & df[col].notna()].copy()
 
     combined = pd.concat([po, rs], ignore_index=True)
-    combined = combined[combined["def_rating_y"].notna()].copy()
+    combined = combined[combined[col].notna()].copy()
 
-    # Center def_rating for interpretability
-    def_mean = combined["def_rating_y"].mean()
-    combined["def_rating_centered"] = combined["def_rating_y"] - def_mean
+    def_mean = combined[col].mean()
+    combined["def_rating_centered"] = combined[col] - def_mean
 
     combined["is_playoff_num"] = combined["is_playoff"].astype(float)
 
@@ -117,7 +124,6 @@ def logistic_regression_adjusted(df: pd.DataFrame) -> pd.DataFrame:
     else:
         print(f"  → Opponent defensive quality is NOT a significant predictor of floor games.")
 
-    # Per-player adjusted rates
     print("\n=== Per-Player Opponent-Adjusted Floor Rates ===\n")
     rows = []
     for player in sorted(po["player_name"].unique()):
@@ -127,16 +133,13 @@ def logistic_regression_adjusted(df: pd.DataFrame) -> pd.DataFrame:
             continue
 
         po_floor_raw = sub_po["is_floor_primary"].mean()
-        po_def_mean = sub_po["def_rating_y"].mean()
+        po_def_mean = sub_po[col].mean()
         rs_floor_raw = sub_rs["is_floor_primary"].mean() if not sub_rs.empty else np.nan
 
-        avg_def = combined["def_rating_y"].mean()
+        avg_def = combined[col].mean()
         n_po = len(sub_po)
         delta_raw = po_floor_raw - rs_floor_raw if not np.isnan(rs_floor_raw) else np.nan
 
-        # Simple adjustment: what would the playoff floor rate be if opponents
-        # had league-average defense instead of actual playoff defense?
-        # Use the logistic model coefficient to back out the opponent effect
         def_delta = po_def_mean - avg_def
         opponent_effect = def_delta * def_coef if not np.isnan(def_coef) else 0
         po_floor_adjusted_logit = np.log(po_floor_raw / (1 - po_floor_raw)) if 0 < po_floor_raw < 1 else 0
@@ -175,7 +178,8 @@ def logistic_regression_adjusted(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def harden_deep_dive(df: pd.DataFrame) -> None:
-    po = df[df["is_playoff"] & df["def_rating_y"].notna()].copy()
+    col = _def_col(df)
+    po = df[df["is_playoff"] & df[col].notna()].copy()
     harden_po = po[po["player_name"] == "James Harden"]
 
     if harden_po.empty:
@@ -183,7 +187,7 @@ def harden_deep_dive(df: pd.DataFrame) -> None:
 
     print("\n=== Harden Deep Dive: Opponent Quality vs Floor Games ===\n")
 
-    def_rating_bins = pd.qcut(harden_po["def_rating_y"], q=3, labels=["weak", "average", "strong"])
+    def_rating_bins = pd.qcut(harden_po[col], q=3, labels=["weak", "average", "strong"])
     harden_po_copy = harden_po.copy()
     harden_po_copy["opp_quality"] = def_rating_bins
 
@@ -193,7 +197,7 @@ def harden_deep_dive(df: pd.DataFrame) -> None:
             continue
         floor_count = tier_games["is_floor_primary"].sum()
         floor_rate = tier_games["is_floor_primary"].mean()
-        avg_def = tier_games["def_rating_y"].mean()
+        avg_def = tier_games[col].mean()
         print(f"  vs {tier:>7} defense ({avg_def:.1f} avg): {floor_count}/{len(tier_games)} floor games ({floor_rate:.0%})")
 
     rs = df[~df["is_playoff"] & (df["player_name"] == "James Harden")]
@@ -201,22 +205,19 @@ def harden_deep_dive(df: pd.DataFrame) -> None:
     print(f"\n  Regular-season floor rate: {rs_floor:.1%}")
     print(f"  Playoff floor rate (raw):   {harden_po['is_floor_primary'].mean():.1%}")
 
-    # Average opponent defense faced in playoffs
-    po_def = harden_po["def_rating_y"].mean()
+    po_def = harden_po[col].mean()
     print(f"  Average opponent DEF_RATING in playoffs: {po_def:.1f}")
-    print(f"  League average DEF_RATING:               {df['def_rating_y'].mean():.1f}")
+    print(f"  League average DEF_RATING:               {df[col].mean():.1f}")
 
-    # How much does opponent quality explain?
-    # Simple OLS: is_floor ~ def_rating in playoffs only
     from statsmodels.api import OLS
-    X = sm.add_constant(harden_po[["def_rating_y"]].astype(float))
+    X = sm.add_constant(harden_po[[col]].astype(float))
     y = harden_po["is_floor_primary"].astype(float)
     ols_model = OLS(y, X).fit()
     print(f"\n  Harden OLS (playoffs only): is_floor ~ def_rating")
-    print(f"    def_rating coef: {ols_model.params.get('def_rating_y', np.nan):+.4f} (p={ols_model.pvalues.get('def_rating_y', 1):.4f})")
+    print(f"    def_rating coef: {ols_model.params.get(col, np.nan):+.4f} (p={ols_model.pvalues.get(col, 1):.4f})")
     print(f"    R² = {ols_model.rsquared:.3f}")
 
-    if ols_model.pvalues.get("def_rating_y", 1) < 0.05:
+    if ols_model.pvalues.get(col, 1) < 0.05:
         print("    → Opponent quality SIGNIFICANTLY predicts Harden's floor games")
     else:
         print("    → Opponent quality does NOT significantly predict Harden's floor games")
@@ -230,11 +231,11 @@ def main() -> None:
 
     df = pd.read_csv(path, low_memory=False)
 
-    # Convert is_playoff to bool if needed
     df["is_playoff"] = df["is_playoff"].astype(bool)
     df["is_floor_primary"] = df["is_floor_primary"].astype(bool)
 
-    n_with_def = df["def_rating_y"].notna().sum()
+    col = _def_col(df)
+    n_with_def = df[col].notna().sum()
     n_total = len(df)
     print(f"Analysis table: {n_total} rows, {n_with_def} with opponent DEF_RATING ({n_with_def/n_total:.0%} coverage)")
 

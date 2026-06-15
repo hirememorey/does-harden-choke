@@ -4,7 +4,7 @@
 **Project:** `does-harden-choke`  
 **Status:** Pass 1 complete (Screens A–E) + extensions (opponent adjustment, RS retention baselines, event frequency). Pass 2 parser validated; possession analysis at spike scale (~69 games).
 
-**Cohort:** 18 players, ~20,000 games in `analysis_table.csv`
+**Cohort:** 31 players, ~31,000 games in `analysis_table.csv`
 
 ---
 
@@ -12,17 +12,39 @@
 
 The original hypothesis asked whether James Harden's playoff reputation reflects a **variance shift** that **compounds late in series** because opponents adapt to heliocentric offense — and whether that pattern distinguishes Group A from Group B.
 
-**Verdict (updated):** The adaptation story is dead (H2 rejected). The aggregate "playoffs cause more floor games" story is also dead after opponent adjustment. What survives is a **failure-mode taxonomy**:
+**Verdict (updated):** The adaptation story is dead (H2 rejected). The aggregate "playoffs cause more floor games" story is also dead after opponent adjustment. What survives is a **trigger taxonomy**.
 
-1. **Contraction** (volume collapses) vs. **forcing** (volume preserved, efficiency collapses) — a novel game-level distinction (Screen E).
-2. **Contraction is a stable career trait** — RS FGA retention predicts PO FGA retention (r = 0.72). Harden's RS≈PO shift is −0pp on FGA retention; playoff contraction is not new behavior.
-3. **Three contractor subtypes** cut across Group A/B:
-   - **Trait contractor (Harden):** opponent-independent floors; elevated adj. floor rate (+7pp)
-   - **Rim-abandoning contractor (PG):** stable volume, catastrophic PO FTA collapse (−29pp)
-   - **Scheme-dependent contractor (SGA):** hardest PO contraction, entirely opponent-driven
-4. **Forcers** (Durant, Curry) keep shooting through bad nights.
+### How we got here (resolved background)
 
-The honest Harden claim: **he contracts the same way in all bad games (RS or PO), has more floor games in the playoffs (partly opponent-driven), and those floors happen against weak defenses too — making them unpredictable.** The public "choke" narrative misdiagnoses mechanism (contraction, not clutch failure) and overweights memorable catastrophes that don't define the distribution.
+The project began by asking *how* stars fail in the playoffs — do they **contract** (stop shooting) or **force** (keep shooting inefficiently)? That contractor/forcer mechanism taxonomy (Screen E) answered its question and is now settled. The key finding was negative: mechanism and frequency are independent. Butler contracts like Harden but barely floors in the playoffs. Two players can fail the same way at completely different rates. So *how* a star fails does not tell you *how often* or *when* they will fail. The mechanism split helped us ask the right follow-up question — what determines **when** the failure happens? — but it is not itself the primary axis. A new reader should treat Screen E as resolved context, not an active research question.
+
+### The actual finding: trigger taxonomy (Screen F)
+
+Stars' floor games are triggered by different conditions, and the **trigger type** — not the failure mechanism — is what matters for scouting and team-building:
+
+| Trigger | Definition | Players | Scouting implication |
+|---------|-----------|---------|---------------------|
+| **Opponent-independent** | Floors vs weak and strong D alike | Harden, PG, Embiid, Klay | Unpredictable — can't scheme it away |
+| **Scheme-dependent** | Floors only vs elite D | SGA, Westbrook, Trae, Simmons | Gameplan-able — elite D suppresses |
+| **Disengagement** | Floors vs weak D, rises vs strong | Butler, Ray Allen, Giannis, Haliburton | System-dependent — keep engaged |
+| **Bimodal** | Floors vs both weak and strong D | DeRozan, Iverson, Wall, Curry, Luka | Two different triggers |
+| **Standard** | No distinctive pattern | Durant, LeBron, Kobe, CP3, Lillard, **Dirk**, Brunson, Tatum, Jokic, Hamilton | Mild gradient |
+
+### The KAT/Harden framing
+
+The 2025 NBA Finals discourse claims Karl-Anthony Towns "shed the loser label." But KAT didn't change — the Knicks' elite defense hides his floor weaknesses (can't anchor, gets played off the floor) by ensuring he never has to. To a fan, KAT looks like he discovered clutch grit. The data says the system removed the conditions that exposed him.
+
+This is the distinction the trigger taxonomy captures. **Scheme-dependent** triggers (SGA, Simmons) are like KAT — the right system can hide them. **Opponent-independent** triggers (Harden, PG, Embiid) are the opposite — you can't build a KAT-style system solution because there's no identifiable condition to remove. Harden's bad games are a coin flip; no opponent profile predicts them; no roster construction reliably prevents them unless he's your third option or your #1 isn't also underperforming.
+
+**Dirk Nowitzki** tests the "choker to champion" narrative flip directly. Dirk is classified `standard` trigger, `forcer` mechanism, with a playoff floor rate that **drops** from 15% to 7.1% — he has *fewer* bad games in the playoffs, not more. The 2011 championship didn't require Dirk to change. He was never the choker. 2011 was the year the roster was finally good enough to win when Dirk did what Dirk always did.
+
+### Summary of key findings
+
+1. **Mechanism (contraction vs. forcing) is resolved background** — it helped us get here but is not the primary axis. See Screen E section below.
+
+2. **Contraction is a stable career trait** — RS FGA retention predicts PO FGA retention (r = 0.72). But trait stability of mechanism does not predict frequency.
+
+3. **The public "choke" narrative misdiagnoses trigger as psychology** — calling Butler a "playoff riser" and DeRozan a "choker" confuses mechanism with frequency and misses the actual trigger conditions. Calling Dirk a "choker until 2011" misdiagnoses a roster problem as a player problem.
 
 See [`open_questions.md`](open_questions.md) for resolved research decisions and remaining gaps.
 
@@ -48,11 +70,15 @@ If playoff floor-game rate is indistinguishable from regular season after oppone
 
 ## Sample & Methods
 
-### Players (18 total)
+### Players (31 total)
 
 **Original Pass 1 cohort (11)** — see Screen A–D tables below for per-player stats.
 
 **June 2026 expansion (7):** DeMar DeRozan, John Wall, Chris Paul, LeBron James, Kobe Bryant, Paul George, Shai Gilgeous-Alexander. Added to test contractor/forcer taxonomy, opponent-independent vs. scheme-dependent contraction, and minutes-contamination edge cases (Kobe).
+
+**June 2026 Butler addition (1):** Jimmy Butler. Added to stress-test the taxonomy — perceived elite playoff riser vs. DeRozan (perceived playoff shrinker). Reveals mechanism–frequency independence and a new "situational contractor" archetype.
+
+**June 2026 fourth wave (4):** De'Aaron Fox (disengagement trigger), Tobias Harris (standard/shrinker), Kyrie Irving (standard/forcer), Donovan Mitchell (bimodal/mixed). Added to extend trigger taxonomy to rim-pressure guards, secondary scorers, clutch-narrative guards, and bimodal riser/shrinker patterns. See [`butler_derozan_case_study.md`](butler_derozan_case_study.md).
 
 | Player | Group | RS games | PO games |
 |--------|-------|----------|----------|
@@ -67,6 +93,7 @@ If playoff floor-game rate is indistinguishable from regular season after oppone
 | Chris Paul | A | 1,274 | 149 |
 | LeBron James | A | 1,562 | 282 |
 | Shai Gilgeous-Alexander | A | 462 | 46 |
+| Jimmy Butler | A | 907 | 130 |
 | Stephen Curry | B | 1,026 | 155 |
 | Klay Thompson | B | 865 | 158 |
 | Ray Allen | B | 1,300 | 171 |
@@ -75,9 +102,18 @@ If playoff floor-game rate is indistinguishable from regular season after oppone
 | Kobe Bryant | B | 1,346 | 220 |
 | Paul George | B | 793 | 114 |
 
-*Sample changes from original plan:* Kyrie Irving and Khris Middleton removed; Damian Lillard and Kevin Durant added (March 2026). Seven additional players added (June 2026).
+**June 2026 fourth wave (4):**
 
-**Total games in analysis table:** ~20,000 (18,746 with opponent DEF_RATING joined)
+| Player | Group | RS games | PO games |
+|--------|-------|----------|----------|
+| De'Aaron Fox | A | 603 | 28 |
+| Tobias Harris | B | 1,033 | 81 |
+| Kyrie Irving | B | 779 | 96 |
+| Donovan Mitchell | B | 609 | 81 |
+
+*Sample changes from original plan:* Kyrie Irving and Khris Middleton removed; Damian Lillard and Kevin Durant added (March 2026). Seven additional players added (June 2026). Jimmy Butler added (June 2026).
+
+**Total games in analysis table:** ~31,000 (29,000+ with opponent DEF_RATING joined)
 
 ### Floor-game definition
 
@@ -319,6 +355,114 @@ The foul-whistle hypothesis (playoff officiating devalues his rim attacks) was c
 
 Original Screen E labeled Kobe "shrinker" (vol_share 62%, min Δ −16.6). **This was wrong.** Half his floor games were blowout benchings (median 13.6 minutes). With ≥25-minute floor games: FGA retention 75% PO, FTA retention 52%. He keeps shooting jump shots that don't fall — **forcer with rim abandonment**, not contractor. Do not cite Kobe alongside Harden/PG as a contraction archetype without the minutes filter.
 
+### Note on Screen E's role
+
+Screen E is **resolved background**. It answered the question "how do stars fail?" (contraction vs. forcing) and revealed that mechanism is a stable career trait (r = 0.72) but independent of failure frequency. This finding was the critical pivot point: if *how* you fail doesn't predict *how often*, then something else determines frequency — which led to the trigger taxonomy (Screen F). New readers should understand Screen E as settled context that motivated Screen F, not as the project's primary contribution.
+
+---
+
+## Screen F — Trigger Classification (Primary Axis)
+
+**Question:** *Why* do floor games happen? Under what conditions does a star's bad game get triggered?
+
+This is the project's primary contribution. The contractor/forcer mechanism taxonomy (Screen E) showed that failure mechanism and failure frequency are independent — Butler contracts like Harden but barely floors. So the differentiator isn't *how* a star fails but *when*. Screen F classifies the **trigger conditions** that produce floor games by examining floor-game rates across opponent defensive quality terciles.
+
+### Trigger types
+
+| Type | Definition | Scouting implication |
+|------|-----------|---------------------|
+| **Opponent-independent** | Floors vs weak and strong D alike | Unpredictable — can't scheme it away or build a system to prevent it |
+| **Scheme-dependent** | Floors only vs elite D | Gameplan-able — structure offense to avoid the scheme that triggers failure |
+| **Disengagement** | Floors vs weak D, rises vs strong D | System-dependent — keep the star engaged; bad games come from coasting, not pressure |
+| **Bimodal** | Floors vs both ends, not average | Two different triggers operating |
+| **Standard** | No distinctive pattern | Mild gradient, no actionable trigger signal |
+
+### Full trigger classification (31 players)
+
+| Player | Trigger | PO floor % | Δ floor | Weak D | Avg D | Strong D | Gradient |
+|--------|---------|-----------|---------|--------|-------|----------|----------|
+| **James Harden** | opponent-independent | 22.3% | +7.5% | 32% | 14% | 20% | +0.12 |
+| **Joel Embiid** | opponent-independent | 27.3% | +12.2% | 39% | 19% | 25% | +0.14 |
+| **Paul George** | opponent-independent | 15.2% | +0.2% | 27% | 6% | 17% | +0.10 |
+| **Klay Thompson** | opponent-independent | 15.2% | +0.2% | 22% | 11% | 13% | +0.09 |
+| Russell Westbrook | scheme-dependent | 19.4% | +4.4% | 11% | 19% | 30% | −0.19 |
+| Trae Young | scheme-dependent | 25.9% | +10.9% | 8% | 36% | 50% | −0.42 |
+| Ben Simmons | scheme-dependent | 17.9% | +2.8% | 6% | 8% | 50% | −0.44 |
+| **De'Aaron Fox** | disengagement | 17.9% | +2.8% | 30% | 15% | 0% | +0.30 |
+| Shai Gilgeous-Alexander | disengagement | 14.8% | −0.3% | 35% | 8% | 0% | +0.35 |
+| Jimmy Butler | disengagement | 10.8% | −4.2% | 19% | 10% | 2% | +0.16 |
+| Giannis Antetokounmpo | disengagement | 10.7% | −4.0% | 19% | 8% | 4% | +0.16 |
+| Ray Allen | disengagement | 28.1% | +13.2% | 35% | 31% | 18% | +0.17 |
+| Tyrese Haliburton | disengagement | 7.9% | −7.1% | 21% | 0% | 0% | +0.21 |
+| **Donovan Mitchell** | bimodal | 16.0% | +1.1% | 21% | 7% | 20% | +0.01 |
+| DeRozan | bimodal | 15.9% | +0.8% | 21% | 5% | 21% | 0.00 |
+| Iverson | bimodal | 16.4% | +1.4% | 20% | 9% | 21% | −0.01 |
+| Wall | bimodal | 10.8% | −4.2% | 21% | 0% | 9% | +0.12 |
+| Curry | bimodal | 7.4% | −7.6% | 12% | 2% | 9% | +0.03 |
+| Luka Doncic | bimodal | 14.5% | −0.5% | 17% | 5% | 24% | −0.07 |
+| **Dirk Nowitzki** | standard | **7.1%** | **−7.8%** | 8% | 4% | 10% | −0.02 |
+| **Kyrie Irving** | standard | 18.8% | +3.7% | 14% | 20% | 23% | −0.08 |
+| **Tobias Harris** | standard | 11.1% | −3.2% | 3% | 20% | 12% | −0.09 |
+| Kevin Durant | standard | 13.3% | −1.7% | 16% | 16% | 7% | +0.09 |
+| LeBron James | standard | 12.0% | −3.1% | 14% | 13% | 9% | +0.06 |
+| Kobe Bryant | standard | 11.6% | −3.4% | 10% | 16% | 8% | +0.02 |
+| CP3 | standard | 17.4% | +2.5% | 11% | 16% | 26% | −0.15 |
+| Lillard | standard | 23.5% | +8.5% | 24% | 19% | 29% | −0.05 |
+| Nikola Jokic | standard | 4.0% | −11.1% | 8% | 0% | 3% | +0.05 |
+| Jalen Brunson | standard | 4.7% | −10.3% | 3% | 10% | 0% | +0.03 |
+| Jayson Tatum | standard | 11.8% | −3.2% | 16% | 10% | 8% | +0.08 |
+| Richard Hamilton | standard | 10.9% | −4.1% | 10% | 12% | 11% | 0.00 |
+
+### The Dirk Nowitzki test case
+
+Dirk had one of the most visible "choker to champion" narrative flips in NBA history. Pre-2011: labeled soft, couldn't win the big one, 2006 Finals collapse, 2007 first-round upset. Post-2011: playoff legend, carried the Mavs through the gauntlet, beat LeBron's Heat.
+
+The data do not support the narrative flip:
+
+| Metric | RS | Playoffs |
+|--------|-----|----------|
+| Floor-game rate | 15.0% | **7.1%** |
+| Trigger | — | **standard** |
+| Mechanism | — | **forcer** (vol_share 27%) |
+| FGA retention | 89% RS | **94% PO** |
+| PO floor rate vs weak D | — | 8% |
+| PO floor rate vs strong D | — | 10% |
+
+Dirk **improves** in the playoffs by every metric available. His floor rate drops nearly 8pp. His FGA retention goes UP — he shoots more aggressively in PO floor games than RS floor games. His trigger profile is `standard` — no distinctive opponent pattern, nothing to scheme against or build around.
+
+The 2011 championship wasn't Dirk "finally showing up." It was the year the team around him was good enough to win when Dirk did what Dirk always did. This is the **KAT pattern**: the system changed, not the player. But unlike KAT (whose floor weaknesses are hidden by team defense), Dirk's floor weaknesses were never the problem — the surrounding roster was.
+
+**Key contrast with Harden:** Dirk's "choker" reputation was a pure narrative artifact — the data show a player who gets *better* in the playoffs. Harden's reputation has a real empirical basis (opponent-independent 22% floor rate, +7.5pp increase) but is *misdiagnosed* — it's not psychology, it's a structural trigger pattern with no identifiable condition to remove.
+
+---
+
+## Fourth-Wave Case Studies (June 2026)
+
+### De'Aaron Fox — Disengagement extends to rim-pressure guards
+
+Fox classified `disengagement` (gradient +0.30): 30% floor rate vs weak D, 0% vs strong D. This extends the disengagement archetype beyond SGA and Butler to speed-dependent creators whose engagement is stakes-dependent. Fox's adjusted floor-rate increase (+7.0pp) ties Harden for the cohort's largest — but via the opposite trigger. Harden is unpredictable (floors vs everyone); Fox is manageable (floors only vs weak D). The same +7pp number means completely different things structurally.
+
+### Tobias Harris — The inverse meme
+
+Harris classified `standard` trigger, `shrinker` mechanism (vol_share 59%). His PO floor rate is only 11.1% (−3.2pp from RS) — he rarely floors. But when he does, the contraction is catastrophic: FGA retention drops from 92% RS to 64% PO (−28pp shift, the largest in the cohort). With ≥25 min filter, FTA retention drops from 53% RS to 11% PO (−41pp). The "Tobias Harris" meme exists because floor games are *visible* when they happen (catastrophic withdrawal), not because they happen often. This is the inverse of Harden: Harden floors often (+7.5pp) but moderately; Harris floors rarely (−3.2pp) but severely.
+
+### Kyrie Irving — The clutch god is a sampling artifact
+
+Kyrie classified `standard` trigger (gradient −0.08), `forcer` mechanism (vol_share 31%). His PO floor rate is 18.8% (+3.7pp raw, +2.4pp adj) — he floors more in the playoffs, not less. The `standard` trigger means no opponent condition predicts his floor games: 14% vs weak D, 20% vs average, 23% vs strong D. The `forcer` mechanism means he keeps shooting through slumps (FGA retention 91% PO) — the shots just don't fall (FG% −16.3pp, 3PT% −18.0pp in floor games).
+
+The "clutch god" narrative is a highlight-reel sampling artifact. The 2016 Game 7 shot and the 2017 conference finals are real — but they're drawn from the same distribution that produces 4-of-18 against Milwaukee and 6-of-19 in the 2024 Finals. Kyrie isn't clutch; he's **random at a high base rate**, and people remember the peaks because they happened to land in the biggest moments.
+
+### Donovan Mitchell — Two triggers, one player
+
+Mitchell classified `bimodal` trigger (gradient +0.01), `mixed` mechanism (vol_share 41%). The bimodal classification: 21% floor rate vs weak D, 7% vs average, 20% vs strong D. Two different triggers:
+
+1. **Against weak defenses (disengagement):** He coasts. The 2022 Dallas Game 5 (4-of-15, 0-for-7 from 3, 9 points with the series on the line) is the archetype.
+2. **Against strong defenses (scheme-suppressed):** Elite switching takes away his driving lanes; he keeps launching contested pull-ups. The 2019 Houston series (3 floor games in 5 games) is the archetype.
+
+His 2025-26 Cleveland runs exposed the bimodal trigger in full: vs Toronto (weak-average D), he disengaged for five consecutive games after Games 1-2 (FTA dropped from 7 to 0); vs Detroit (weaker D), he was engaged and peaked at 43 points in Game 4; vs New York (ECF, strong D), he forced inefficiently — 27 PPG on mediocre shooting while the team was destroyed (−66 +/− across four games).
+
+The bimodal trigger means two different coaching interventions depending on opponent quality — keep him engaged vs weak D, scheme easier looks vs strong D. No single strategy addresses both.
+
 ---
 
 ## Decision Matrix
@@ -334,11 +478,11 @@ Original Screen E labeled Kobe "shrinker" (vol_share 62%, min Δ −16.6). **Thi
 
 Per **pre-registered** criteria (H1 χ² *p* < 0.05, H2 monotonic gradient, H3 top-3 floor-rate increase), Pass 1 does not clear the bar for the original adaptation/variance-shift thesis. H2 and leverage concentration are rejected outright.
 
-**June 2026 extensions reframed the project** without changing the raw Screen A–D results: opponent adjustment explains the cohort-wide playoff effect (but Harden retains +7.1pp adjusted increase); RS retention baselines show contraction is a stable trait; failure-mode taxonomy replaces heliocentric/scalable partition. Pass 2 proceeds as supporting evidence — see [`open_questions.md`](open_questions.md) §5.
+**June 2026 extensions reframed the project** without changing the raw Screen A–D results: opponent adjustment explains the cohort-wide playoff effect (but Harden retains +7.1pp adjusted increase); RS retention baselines show contraction is a stable trait; trigger taxonomy (Screen F) replaces failure-mode taxonomy as the primary axis. Pass 2 proceeds as supporting evidence — see [`open_questions.md`](open_questions.md) §5.
 
 What survives is a **reframed finding**:
 
-> James Harden’s distinctive playoff problem is not that opponents figure him out over seven games, or that his bad games cluster in elimination games. It is that **he contracts the same way in all bad games (RS or PO), has more floor games in the playoffs (partly opponent-driven), and those floors happen against weak defenses too** — whereas comparable stars tend to force shots (Durant) or contract only when elite defenses take away their driving lanes (SGA).
+> The critical differentiator among star players in the playoffs is not what happens when they have a bad game (contraction vs. forcing) but *why* bad games happen. Floor-game trigger type — opponent-independent (Harden, PG), scheme-dependent (SGA), or disengagement-dependent (Butler) — determines whether playoff risk is unpredictable, gameplan-able, or system-manageable. Two players can share the same failure mechanism with completely different frequency patterns (Harden contracts and floors often; Butler contracts and barely floors), because the trigger is different. The public “choke” narrative misdiagnoses trigger conditions as clutch psychology.
 
 ---
 
@@ -407,24 +551,33 @@ FGA retention = (FGA/36 in floor games) / (FGA/36 in non-floor games). Same for 
 | Trait contractor | Harden | RS≈PO contraction; opponent-independent floors |
 | Rim-abandoning contractor | Paul George | Stable FGA; PO FTA collapse −29pp |
 | Scheme-dependent contractor | SGA | Hardest PO contraction; 0% floor vs strong D |
+| Situational contractor | Butler | Contracts by mechanism (vol 68%) but floor rate −4.2pp; inverted opponent pattern (floors vs weak D, rises vs strong D) |
 | Forcer | Durant, Curry, Iverson | FGA retention >90%; efficiency collapse |
+| Bimodal forcer | DeRozan | Mixed/forcer (vol 42%) + rim abandonment; floors vs weak AND strong D; "choker" reputation is Toronto-specific |
+| **Bimodal mixed** | **Donovan Mitchell** | Mixed (vol 41%) + rim abandonment in floor games; floors vs weak D (disengagement) AND strong D (scheme-suppressed); two triggers require two interventions |
 | Inverse contractor | Westbrook, CP3 | Floor *more* vs weak D (disengagement when not forced) |
+| **Forcer (standard trigger)** | **Kyrie Irving** | FGA retention 91% PO; keeps shooting through slumps; efficiency collapses; standard trigger = no opponent condition predicts floors; "clutch god" is sampling artifact |
+| **Shrinker (standard trigger, rare floor)** | **Tobias Harris** | Vol 59% (shrinker); FGA retention drops −28pp RS→PO; FTA retention with ≥25 min drops −41pp; but floor rate only 11.1% — catastrophic contraction when it happens, but it rarely happens |
 
-**Rejected:** "FTA dependency → contraction" as simple rule. SGA has highest FTA dependency and contracts hardest — but entirely opponent-driven.
+**Key finding (Butler + DeRozan):** Mechanism and frequency are independent dimensions. Butler has Harden's mechanism (contraction) with the opposite frequency pattern (floor rate decreases). DeRozan has PG's rim-abandonment symptom without the FGA collapse. The public narrative confuses mechanism with frequency — calling Butler a "playoff riser" and DeRozan a "choker" misdiagnoses both. See [`butler_derozan_case_study.md`](butler_derozan_case_study.md) for full analysis.
 
 ---
 
 ## Limitations
 
 1. ~~**No opponent adjustment**~~ — **Done.** Cohort effect explained; Harden-specific pattern persists.
-2. **Peer sample still modest** — 18 players; PG (17 PO floor games), SGA (8) underpowered for structural claims.
-3. **Game Score is offense-only** — Does not capture defensive variability.
+2. **Peer sample still modest** — 31 players; PG (17 PO floor games), SGA (8), Fox (5), Harris (9) underpowered for structural claims.
+3. **Game Score is offense-only** — Does not capture defensive variability. Cannot distinguish disengagement from scheme suppression from random variance within a game. See Gap 4 in [`CRITICAL_GAPS.md`](CRITICAL_GAPS.md).
 4. **Season-level opponent DEF_RATING** — No game-level or series-level scheme adjustment.
 5. **Age and team context** — Not controlled (partially mitigated by player + season FE in causal chain).
 6. **Minutes contamination** — Partially addressed (≥25 min filter); possession-level decontamination still needed.
 7. **Causal chain not yet run** — Does failure mechanism predict team ORtg? Revised plan uses continuous `fga_retention` on floor games with player FE and `game_score` control; tests H1/H2/H3 symmetrically. See [`causal_chain_plan.md`](causal_chain_plan.md).
 8. **Reverse causality in mechanism** — Does contraction *cause* bad team offense, or does bad team offense *cause* contraction? Game-level data cannot resolve this. Pass 2 temporal ordering (does usage drop follow personal cold start or team collapse?) is the strongest available mitigation.
 9. **Leverage score is constructed** — Not WP-based.
+10. **Trigger taxonomy is descriptive, not predictive** — No split-sample validation; no evidence trigger types are stable across career halves. See Gap 1 in [`CRITICAL_GAPS.md`](CRITICAL_GAPS.md).
+11. **Classification thresholds are overfit by construction** — Hard-coded `classify_trigger()` thresholds tuned on this cohort; bimodal category especially fragile given sample sizes; no null model showing the taxonomy finds more structure than chance. See Gap 3 in [`CRITICAL_GAPS.md`](CRITICAL_GAPS.md).
+12. **No causal identification** — Correlations between opponent quality and floor rates are narrated as "triggers" but could reflect team-quality confounds. See Gap 2 in [`CRITICAL_GAPS.md`](CRITICAL_GAPS.md).
+13. **Narrative confidence outruns evidence** — "Harden's bad games are a coin flip" is stated from a gradient of +0.12 with p=0.124. Statistical support does not warrant the confidence of the prose.
 
 ---
 
@@ -437,6 +590,7 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 - Stale raw/processed data purged and full pipeline re-run
 - Final Pass 1 sample (March 2026): 11 players, 11,683 games, all screens A–E passing
 - June 2026 expansion: 18 players, ~20,000 games; extensions added (`screen_a_adj.py`, `rs_retention_baseline.py`, `event_frequency.py`)
+- June 2026 fourth wave: 31 players, ~31,000 games; Fox, Harris, Kyrie Irving, Mitchell added; critical structural gaps documented
 
 ---
 
@@ -444,19 +598,21 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 
 ### Priority order (June 2026, revised)
 
-1. **Causal chain — mechanism → team outcomes** — Step 0 done (team logs + validation). Next: join to floor games with per-game FGA retention, then test whether failure mechanism (continuous `fga_retention`) predicts team ORtg among floor games, controlling for individual performance quality (`game_score`) and player fixed effects. Three hypotheses tested symmetrically: contraction is worse (H1), forcing is worse (H2), no difference (H3). See [`causal_chain_plan.md`](causal_chain_plan.md) for full revised specification.
-2. **Pass 2 temporal ordering** — Possession-level data can establish whether contraction *follows* a personal cold start (Event A) or *follows* team-wide offensive collapse. This is the strongest available mitigation for the reverse causality threat in the causal chain. Prioritize alongside causal chain, not after it.
-3. **Out-of-sample validation** — Train profile on career first half, test on second half
-4. **Expand cohort** — Embiid, Butler, Mitchell to test PG/Harden category robustness
-5. **Minutes decontamination** — Possession-level "on-floor contraction" vs. benching
+1. **Gap 3: Trigger threshold sensitivity** — Parameterize `classify_trigger()`, run across threshold grid, identify swing players, Bayesian alternative. If taxonomy doesn't survive, other gaps are moot. 1-2 days.
+2. **Gap 1: Split-sample trigger validation** — Split careers in half, re-classify independently, null model. 2-3 days.
+3. **Causal chain — trigger → team outcomes** — Step 0 done (team logs + validation). Next: join to floor games, then test whether trigger type predicts team ORtg among floor games. See [`causal_chain_plan.md`](causal_chain_plan.md).
+4. **Gap 4: Composite floor-game metric** — PCA on Game Score + FTA/FGA engagement + usage drop + +/−; series-level floor detection. 3-5 days.
+5. **Gap 2: Causal identification** — Game-level opponent data, Pass 2 temporal ordering, team-season FE. 5-10 days.
+6. **Out-of-sample validation** — Train trigger profile on career first half, test on second half
+7. **Pass 2 temporal ordering** — Possession-level data can establish whether contraction *follows* a personal cold start (Event A) or *follows* team-wide offensive collapse. This is the strongest available mitigation for the reverse causality threat in the causal chain.
 
 ### If writing up now
 
 The honest paper is not "Harden chokes in the clutch." It is:
 
-**"Stars fail in systematically different ways, and those differences have measurable team-level consequences that persist after controlling for individual performance quality"** — documenting a novel taxonomy, showing contraction is a stable trait, distinguishing opponent-independent contractors (Harden, PG) from scheme-dependent ones (SGA) and forcers (Durant, Curry), and testing whether the mechanism of failure predicts team outcomes net of how badly the star played.
+**"The critical differentiator among star players in the playoffs is not what happens when they have a bad game but why bad games happen — floor-game trigger type (opponent-independent, scheme-dependent, or disengagement-dependent) determines whether playoff risk is unpredictable, gameplan-able, or system-manageable."** Documenting a novel trigger taxonomy, showing that mechanism and frequency are independent dimensions, and testing whether trigger type predicts team outcomes.
 
-If the causal chain shows no mechanism effect (H3), the paper is still publishable on the taxonomy alone, but the contribution is descriptive rather than actionable for scouting.
+If the causal chain shows no trigger effect, the paper is still publishable on the taxonomy alone, but the contribution is descriptive rather than actionable for scouting.
 
 ---
 
@@ -483,3 +639,68 @@ If the causal chain shows no mechanism effect (H3), the paper is still publishab
 ## One-Paragraph Summary
 
 James Harden's raw playoff floor-game rate rises from 15% to 22% (χ² *p* = 0.067), but after opponent adjustment the cohort-wide playoff effect disappears (*p* = 0.83) while Harden retains a +7pp adjusted increase with opponent-independent floors (33% vs weak defenses, 16% vs strong). His contraction is not playoff-specific — FGA retention is 75% RS and 74% PO — but it is a stable career trait (r = 0.72 across the cohort) that distinguishes him from forcers like Durant (97% FGA retention in PO floor games). Paul George shares the opponent-independent contraction pattern but via rim abandonment (FTA retention 54%→25% in playoffs); SGA shares the contraction symptom but via scheme dependence (0% floor rate vs strong defenses). Floor games do not compound late in series (H2 rejected) or cluster in elimination games (Harden: 15% elim vs 23% non-elim). The public "choke" narrative misdiagnoses a structural failure mode — contraction under adversity — as clutch psychology.
+
+---
+
+## Phase A: Trigger Taxonomy Validation (June 14, 2026) — TAXONOMY RETIRED
+
+### Summary
+
+The 5-bucket trigger taxonomy (Screen F) failed split-sample validation and is retired as the primary axis. The project pivots to an architecture-prediction framing.
+
+### Results
+
+| Test | Method | Result | Verdict |
+|------|--------|--------|---------|
+| A1: Threshold sensitivity | Parameterized `classify_trigger()` across gradient/bimodal/weak-floor grids | 4/31 (13%) swing under ±0.03 | **PASS** |
+| A2: Null model | 1000 permutations of `is_floor_primary` within each player's PO games | Bimodal p=0.072; gradient signal p=0.009 | **MIXED** |
+| A3: Bayesian classification | Beta posteriors on tercile floor rates | 25/31 concordance; 13/31 (42%) uncertain | **CAUTION** |
+| A4: Split-sample | Split careers by median date, re-classify each half independently | **8/26 (31%) concordance; 6/26 (23%) gradient direction stability** | **FAIL** |
+| A5: Bootstrap CIs | 1000 resamples per tercile per player | 26/31 (84%) weak-strong CI overlap | **WARNING** |
+
+### Key player results (A4)
+
+| Player | Full career | 1st half | 2nd half | Stable? |
+|--------|------------|----------|----------|---------|
+| James Harden | opponent-independent | opponent-independent | scheme-dependent | No |
+| Joel Embiid | opponent-independent | standard | disengagement | No |
+| SGA | disengagement | disengagement | disengagement | **Yes** |
+| Jimmy Butler | disengagement | opponent-independent | standard | No |
+| Dirk Nowitzki | standard | standard | standard | **Yes** |
+| LeBron James | standard | standard | standard | **Yes** |
+
+### What this means
+
+1. **The categorical 5-bucket taxonomy is not a stable player trait.** Labels change across career halves for 69% of eligible players.
+2. **Even the continuous gradient flips sign for 77% of players.** The opponent-sensitivity signal is real at the full-career level but not stable within career halves.
+3. **The fundamental problem is statistical power.** Splitting ~130 PO games into halves → ~65 per half → ~22 per tercile → ~3 floor games per tercile per half. Sampling error overwhelms the signal.
+4. **What survives:** Contraction as a stable trait (r = 0.72). Opponent adjustment killing the aggregate effect. The mechanism taxonomy (Screen E). Individual player profiles at the full-career level.
+
+### The "playoff whistle" finding
+
+Separately confirmed: the cohort does NOT show a systematic FTA decline in the playoffs. 15/31 players increase FTA/36; 16/31 decrease. Cohort mean shift: −0.05 FTA/36 (effectively zero). Among high-FTA stars (RS FTA/36 ≥ 7): Harden −13.3%, Luka −12.6%, Butler −10.9%, Embiid −10.5%, but also SGA +2.7%, Giannis +3.6%, LeBron +5.3%, Durant +5.7%. The blanket "playoff whistle" narrative is not supported.
+
+### Project pivot: architecture prediction
+
+The trigger taxonomy was a productive dead end. The project's new primary question:
+
+> **Can you predict a star's playoff floor-game risk from their regular-season scoring architecture?**
+
+Key variables: FGA retention (stable trait), FTA dependency, scoring-mode concentration, rim-abandonment index. See `DEVELOPER.md` for the build spec.
+
+### Scripts
+
+| Script | Phase A test |
+|--------|-------------|
+| `src/trigger_sensitivity.py` | A1 (sensitivity), A2 (null model), A3 (Bayesian), A5 (bootstrap) |
+| `src/validate_trigger_stability.py` | A4 (split-sample) |
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `data/processed/trigger_sensitivity.csv` | Classification per threshold combination |
+| `data/processed/trigger_null_model.csv` | Null model results (1000 permutations) |
+| `data/processed/trigger_bayesian.csv` | Bayesian posterior probabilities |
+| `data/processed/trigger_bootstrap_cis.csv` | Bootstrap 95% CIs per tercile |
+| `data/processed/trigger_split_sample.csv` | Split-sample concordance table |

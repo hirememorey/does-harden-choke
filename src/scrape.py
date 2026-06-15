@@ -318,17 +318,30 @@ def enrich_player_logs(df: pd.DataFrame, player_name: str) -> pd.DataFrame:
     return df
 
 
+SERIES_CONTEXT_COLS = (
+    "series_game_num",
+    "is_elimination",
+    "team_wins_so_far",
+    "opponent_wins_so_far",
+)
+
+
 def join_series_context(po_df: pd.DataFrame, series_map: pd.DataFrame) -> pd.DataFrame:
     if po_df.empty or series_map.empty:
         return po_df
+    out = po_df.copy()
+    # Drop prior join artifacts before re-merging (incremental rescrape safety).
+    drop_cols = [c for c in out.columns if c in SERIES_CONTEXT_COLS or c.endswith("_series")]
+    if drop_cols:
+        out = out.drop(columns=drop_cols)
     sm = series_map.copy()
     sm["game_date"] = pd.to_datetime(sm["game_date"])
+    out["game_date"] = pd.to_datetime(out["game_date"])
     join_cols = ["season", "team", "opponent", "game_date"]
-    return po_df.merge(
+    return out.merge(
         sm.drop_duplicates(subset=join_cols),
         on=join_cols,
         how="left",
-        suffixes=("", "_series"),
     )
 
 
@@ -381,16 +394,22 @@ def fetch_opponent_defrtg(client: NBAStatsClient, seasons: list[str]) -> pd.Data
 
 def join_defrtg(df: pd.DataFrame, defrtg: pd.DataFrame) -> pd.DataFrame:
     if df.empty or defrtg.empty:
-        df = df.copy()
-        df["opponent_defrtg"] = pd.NA
-        return df
-    out = df.merge(
-        defrtg.rename(columns={"team_abbrev": "opponent"}),
+        out = df.copy()
+        if "opponent_defrtg" not in out.columns:
+            out["opponent_defrtg"] = pd.NA
+        return out
+    out = df.copy()
+    if "opponent_defrtg" in out.columns:
+        out = out.drop(columns=["opponent_defrtg"])
+    # Player advanced logs also carry def_rating; rename opponent side before merge.
+    opp = defrtg.rename(
+        columns={"team_abbrev": "opponent", "def_rating": "opponent_defrtg"}
+    )
+    return out.merge(
+        opp[["season", "opponent", "opponent_defrtg"]],
         on=["season", "opponent"],
         how="left",
     )
-    out = out.rename(columns={"def_rating": "opponent_defrtg"})
-    return out
 
 
 def _normalize_player_name(name: str) -> str:
@@ -412,7 +431,9 @@ def verify_player_id(client: NBAStatsClient, name: str, nba_id: int) -> bool:
         logger.error("No commonplayerinfo for %s (id=%s)", name, nba_id)
         return False
     api_name = records[0].get("DISPLAY_FIRST_LAST") or records[0].get("PLAYER_NAME", "")
-    if _normalize_player_name(name) != _normalize_player_name(api_name):
+    norm_config = _normalize_player_name(name)
+    norm_api = _normalize_player_name(api_name)
+    if norm_config != norm_api and norm_config not in norm_api and norm_api not in norm_config:
         logger.error(
             "Player ID mismatch: config %s (id=%s) resolves to API name %s",
             name,
@@ -424,12 +445,31 @@ def verify_player_id(client: NBAStatsClient, name: str, nba_id: int) -> bool:
     return True
 
 
+def _seasons_in_file(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    df = pd.read_csv(path, usecols=["season"])
+    return set(df["season"].astype(str).unique())
+
+
+def _merge_player_logs(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+    if existing.empty:
+        return new
+    if new.empty:
+        return existing
+    combined = pd.concat([existing, new], ignore_index=True)
+    if "game_id" in combined.columns:
+        combined = combined.drop_duplicates(subset=["game_id"], keep="last")
+    return combined.sort_values("game_date")
+
+
 def _scrape_player(
     client: NBAStatsClient,
     name: str,
     seasons: list[str],
     series_map: pd.DataFrame,
     defrtg: pd.DataFrame,
+    incremental: bool = False,
 ) -> None:
     meta = config.ALL_PLAYERS[name]
     nba_id = meta["nba_id"]
@@ -437,7 +477,7 @@ def _scrape_player(
     rs_path = config.RAW_DIR / f"{slug}_rs.csv"
     po_path = config.RAW_DIR / f"{slug}_po.csv"
 
-    if rs_path.exists() and po_path.exists():
+    if rs_path.exists() and po_path.exists() and not incremental:
         logger.info("Skipping %s (cached)", name)
         return
 
@@ -446,6 +486,16 @@ def _scrape_player(
 
     debut_year = get_player_debut_start_year(client, nba_id)
     player_seasons = seasons_for_player(seasons, debut_year)
+    if incremental:
+        cached_rs = _seasons_in_file(rs_path)
+        cached_po = _seasons_in_file(po_path)
+        player_seasons = [
+            s for s in player_seasons if s not in cached_rs or s not in cached_po
+        ]
+        if not player_seasons:
+            logger.info("Skipping %s (all seasons cached)", name)
+            return
+
     logger.info(
         "%s: debut %s — fetching %d/%d seasons",
         name,
@@ -457,36 +507,92 @@ def _scrape_player(
     rs_frames, po_frames = [], []
     failed: list[str] = []
     for season in tqdm(player_seasons, desc=f"{name} seasons", leave=False):
-        rs = fetch_merged_player_logs_safe(
-            client, nba_id, season, "Regular Season"
-        )
-        if rs is None:
-            failed.append(f"{season} RS")
-        elif not rs.empty:
-            rs["is_playoff"] = False
-            rs_frames.append(rs)
-        po = fetch_merged_player_logs_safe(client, nba_id, season, "Playoffs")
-        if po is None:
-            failed.append(f"{season} PO")
-        elif not po.empty:
-            po["is_playoff"] = True
-            po_frames.append(po)
+        if not incremental or season not in _seasons_in_file(rs_path):
+            rs = fetch_merged_player_logs_safe(
+                client, nba_id, season, "Regular Season"
+            )
+            if rs is None:
+                failed.append(f"{season} RS")
+            elif not rs.empty:
+                rs["is_playoff"] = False
+                rs_frames.append(rs)
+        if not incremental or season not in _seasons_in_file(po_path):
+            po = fetch_merged_player_logs_safe(client, nba_id, season, "Playoffs")
+            if po is None:
+                failed.append(f"{season} PO")
+            elif not po.empty:
+                po["is_playoff"] = True
+                po_frames.append(po)
 
     if failed:
         logger.warning("%s: %d season fetches failed: %s", name, len(failed), failed[:8])
 
-    if rs_frames:
-        rs_df = enrich_player_logs(pd.concat(rs_frames, ignore_index=True), name)
+    if rs_frames or (incremental and rs_path.exists()):
+        new_rs = enrich_player_logs(pd.concat(rs_frames, ignore_index=True), name) if rs_frames else pd.DataFrame()
+        if incremental and rs_path.exists():
+            existing_rs = pd.read_csv(rs_path, parse_dates=["game_date"])
+            rs_df = _merge_player_logs(existing_rs, new_rs)
+        else:
+            rs_df = new_rs
         rs_df = join_defrtg(rs_df, defrtg)
         rs_df.to_csv(rs_path, index=False)
         logger.info("%s RS: %d games", name, len(rs_df))
 
-    if po_frames:
-        po_df = enrich_player_logs(pd.concat(po_frames, ignore_index=True), name)
+    if po_frames or (incremental and po_path.exists()):
+        new_po = enrich_player_logs(pd.concat(po_frames, ignore_index=True), name) if po_frames else pd.DataFrame()
+        if incremental and po_path.exists():
+            existing_po = pd.read_csv(po_path, parse_dates=["game_date"])
+            po_df = _merge_player_logs(existing_po, new_po)
+        else:
+            po_df = new_po
         po_df = join_series_context(po_df, series_map)
         po_df = join_defrtg(po_df, defrtg)
         po_df.to_csv(po_path, index=False)
         logger.info("%s PO: %d games", name, len(po_df))
+
+
+def _append_opponent_defrtg(
+    client: NBAStatsClient,
+    defrtg_path: Path,
+    seasons: list[str],
+) -> pd.DataFrame:
+    existing = pd.read_csv(defrtg_path) if defrtg_path.exists() else pd.DataFrame()
+    cached = set(existing["season"].astype(str).unique()) if not existing.empty else set()
+    missing = [s for s in seasons if s not in cached]
+    if not missing:
+        return existing
+    new = fetch_opponent_defrtg(client, missing)
+    combined = pd.concat([existing, new], ignore_index=True) if not existing.empty else new
+    combined = combined.drop_duplicates(subset=["season", "team_abbrev"], keep="last")
+    combined.to_csv(defrtg_path, index=False)
+    logger.info("Wrote %s (%d rows, +%d seasons)", defrtg_path, len(combined), len(missing))
+    return combined
+
+
+def _append_series_map(
+    client: NBAStatsClient,
+    series_path: Path,
+    seasons: list[str],
+) -> pd.DataFrame:
+    existing = pd.read_csv(series_path, parse_dates=["game_date"]) if series_path.exists() else pd.DataFrame()
+    cached = set(existing["season"].astype(str).unique()) if not existing.empty else set()
+    missing = [s for s in seasons if s not in cached]
+    if not missing:
+        return existing
+    new_rows = []
+    for season in tqdm(missing, desc="Playoff games (series map)"):
+        po = fetch_playoff_games_for_season(client, season)
+        if not po.empty:
+            new_rows.append(build_team_series_map(po))
+    if not new_rows and existing.empty:
+        return pd.DataFrame()
+    combined = pd.concat([existing] + new_rows, ignore_index=True) if new_rows else existing
+    combined = combined.drop_duplicates(
+        subset=["season", "team", "opponent", "game_date"], keep="last"
+    )
+    combined.to_csv(series_path, index=False)
+    logger.info("Wrote %s (%d rows, +%d seasons)", series_path, len(combined), len(missing))
+    return combined
 
 
 def scrape_all(
@@ -494,6 +600,7 @@ def scrape_all(
     seasons: list[str] | None = None,
     skip_series: bool = False,
     rebuild_shared: bool = False,
+    incremental: bool = False,
 ) -> None:
     config.RAW_DIR.mkdir(parents=True, exist_ok=True)
     client = NBAStatsClient()
@@ -503,17 +610,27 @@ def scrape_all(
     series_path = config.RAW_DIR / "team_series_map.csv"
     if rebuild_shared and series_path.exists():
         series_path.unlink()
-    if not skip_series and not series_path.exists():
-        all_po = []
-        for season in tqdm(seasons, desc="Playoff games (series map)"):
-            po = fetch_playoff_games_for_season(client, season)
-            if not po.empty:
-                all_po.append(po)
-        if all_po:
-            combined = pd.concat(all_po, ignore_index=True)
-            series_map = build_team_series_map(combined)
-            series_map.to_csv(series_path, index=False)
-            logger.info("Wrote %s (%d rows)", series_path, len(series_map))
+    if not skip_series:
+        if incremental or not series_path.exists():
+            if incremental and series_path.exists():
+                series_map = _append_series_map(client, series_path, seasons)
+            else:
+                all_po = []
+                for season in tqdm(seasons, desc="Playoff games (series map)"):
+                    po = fetch_playoff_games_for_season(client, season)
+                    if not po.empty:
+                        all_po.append(po)
+                if all_po:
+                    combined = pd.concat(all_po, ignore_index=True)
+                    series_map = build_team_series_map(combined)
+                    series_map.to_csv(series_path, index=False)
+                    logger.info("Wrote %s (%d rows)", series_path, len(series_map))
+                else:
+                    series_map = pd.DataFrame()
+        elif series_path.exists():
+            series_map = pd.read_csv(series_path, parse_dates=["game_date"])
+        else:
+            series_map = pd.DataFrame()
     elif series_path.exists():
         series_map = pd.read_csv(series_path, parse_dates=["game_date"])
     else:
@@ -522,7 +639,9 @@ def scrape_all(
     defrtg_path = config.RAW_DIR / "opponent_defrtg.csv"
     if rebuild_shared and defrtg_path.exists():
         defrtg_path.unlink()
-    if not defrtg_path.exists():
+    if incremental and defrtg_path.exists():
+        defrtg = _append_opponent_defrtg(client, defrtg_path, seasons)
+    elif not defrtg_path.exists():
         defrtg = fetch_opponent_defrtg(client, seasons)
         defrtg.to_csv(defrtg_path, index=False)
         logger.info("Wrote %s", defrtg_path)
@@ -531,7 +650,7 @@ def scrape_all(
 
     for i, name in enumerate(tqdm(players, desc="Players")):
         try:
-            _scrape_player(client, name, seasons, series_map, defrtg)
+            _scrape_player(client, name, seasons, series_map, defrtg, incremental=incremental)
         except Exception as exc:
             logger.error("FATAL for %s: %s — continuing to next player", name, exc)
             time.sleep(30)
@@ -550,6 +669,11 @@ def main() -> None:
         action="store_true",
         help="Rebuild team_series_map.csv and opponent_defrtg.csv",
     )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Fetch only seasons missing from cached CSVs and append shared tables",
+    )
     args = parser.parse_args()
 
     if args.series_only:
@@ -567,7 +691,13 @@ def main() -> None:
         )
         return
 
-    scrape_all(args.players, args.seasons, args.skip_series, args.rebuild_shared)
+    scrape_all(
+        args.players,
+        args.seasons,
+        args.skip_series,
+        args.rebuild_shared,
+        args.incremental,
+    )
 
 
 if __name__ == "__main__":

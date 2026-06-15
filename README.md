@@ -1,32 +1,69 @@
 # does-harden-choke
 
-Research project asking whether star players **contract**, **force**, or **redistribute** under playoff adversity — measured first at the game level (Pass 1), then at the possession level (Pass 2).
+**Great players, bad games: what does the failure look like mechanically, and can you predict it from regular-season architecture?**
 
-**Status (June 2026):** Pass 1 complete and extended (18 players, opponent adjustment, RS retention baselines). **Causal chain Step 0 complete** — team ORtg logs scraped and validated; Step 1 (join to player floor games) is next ([`causal_chain_plan.md`](documents/development/causal_chain_plan.md)). Pass 2 possession parser validated on fixture games; full Pass 2 pipeline not yet scaled.
+## What this project is
 
-**Start here:** [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) to onboard and run the pipeline. [`documents/development/findings.md`](documents/development/findings.md) for what we learned. [`documents/development/open_questions.md`](documents/development/open_questions.md) for resolved decisions and remaining gaps.
+A quantitative study of playoff failure modes across 31 HOF-caliber NBA players (~31,000 games). The original question was "does Harden choke?" The answer turned out to be more interesting than yes or no.
+
+### What we found (settled)
+
+1. **Contraction is a stable career trait** (r = 0.72). How a player's volume drops in bad games is consistent RS-to-PO. Harden contracts the same way in January as in May.
+
+2. **The cohort-wide "playoff effect" is explained by opponent quality.** After adjustment, there is no systematic increase in floor games in the playoffs (p = 0.83). But individual players (Harden +7pp, Embiid +14pp) retain elevated rates after adjustment.
+
+3. **Mechanism (contraction vs forcing) and frequency (how often bad games occur) are independent.** Butler contracts like Harden but barely floors. Two players can fail the same way at completely different rates.
+
+4. **The "playoff whistle" narrative is mostly a myth** in this cohort. 15/31 players increase FTA/36 in the playoffs; 16/31 decrease. Cohort mean shift: −0.05. LeBron, Dirk, Brunson, Mitchell, Paul George all draw MORE free throws. Harden's −13% decline is real but not rare — Luka, Embiid, Butler show comparable drops.
+
+5. **Harden's floor games are not clutch-concentrated.** His elimination-game floor rate (15%) is *lower* than non-elimination (23%). Bad games don't cluster in big moments. The "choke" narrative is a misdiagnosis.
+
+6. **Dirk was never a choker.** PO floor rate 7.1% (vs 15% RS). FGA retention 94%. The 2011 championship didn't require Dirk to change — the team around him improved.
+
+### What we tried and killed (honest negative results)
+
+- **H2 (within-series adaptation):** Rejected. Floor games don't compound as a series progresses.
+- **Leverage concentration:** Rejected. Bad games don't cluster in high-leverage moments.
+- **The 5-bucket trigger taxonomy** (opponent-independent / scheme-dependent / disengagement / bimodal / standard): **Failed split-sample validation.** Phase A testing (June 2026) showed 31% concordance across career halves, 23% gradient stability. The categorical labels are not stable traits. The taxonomy is retired as a primary axis; the gradient signal (continuous opponent-sensitivity) survives as a descriptive measure.
+
+### The current thesis (June 2026 pivot)
+
+The trigger taxonomy was a productive dead end — it produced the right questions but the wrong vessel. The project now pivots to a predictive, architecture-first frame:
+
+> **Can you predict a star's playoff floor-game risk from their regular-season scoring architecture?**
+
+The key variables are:
+- **Scoring mode count:** How many independent ways can this player score? Harden has two pillars (foul baiting + step-back threes); when both collapse, he has no tertiary mode. Durant has three (midrange + driving + threes). Players with fewer modes are more vulnerable.
+- **FGA retention as stable trait:** RS floor-game volume retention predicts PO floor-game volume retention (r = 0.72). This is measurable before the playoffs start.
+- **Rim abandonment vs full contraction:** PG keeps shooting but stops getting to the line (FTA retention 54%→25%). Harden contracts everything at once. Different failure architectures, different team consequences.
+- **Defense as a second axis:** KAT's defensive vulnerability (can't anchor, gets played off the floor) is hidden by the Knicks' elite defense. Offensive architecture and defensive floor are two independent risk dimensions.
+
+### The KAT/Dirk question
+
+The 2025 NBA Finals discourse argues KAT "shed the loser label." But KAT didn't fundamentally change — the Knicks' elite defense hides his floor weaknesses. Harden is the opposite case: you can't build a system solution for a failure mode you can't predict. Dirk proves the narrative flip is almost always a system change, not a player change.
+
+**Status (June 2026):** Pass 1 complete and extended. Trigger taxonomy Phase A validation complete (taxonomy retired). Architecture-prediction pipeline is next. Causal chain Step 0 complete; Steps 1–4 not yet started.
+
+**Start here:** [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) to onboard and run the pipeline. [`documents/development/findings.md`](documents/development/findings.md) for full results. [`documents/development/open_questions.md`](documents/development/open_questions.md) for what's decided and what's next.
 
 ## Documents
 
 | Document | Covers |
 |----------|--------|
-| [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) | **Onboarding** — setup, pipeline, cohort, what's done vs. open |
-| [`documents/development/findings.md`](documents/development/findings.md) | Full results — Pass 1 screens A–E plus post-Pass-1 extensions |
-| [`documents/development/open_questions.md`](documents/development/open_questions.md) | Five pre-scaling questions — **resolved** with pointers to evidence |
-| [`documents/development/pass1_plan.md`](documents/development/pass1_plan.md) | Pass 1 research design and pipeline spec |
-| [`documents/development/pass2_research_design.md`](documents/development/pass2_research_design.md) | Pass 2 conceptual framing |
-| [`documents/development/pass2_design_spec.md`](documents/development/pass2_design_spec.md) | Pass 2 technical spec (events, baselines, validation gates) |
-| [`documents/development/pass2_possession_parser_status.md`](documents/development/pass2_possession_parser_status.md) | Parser validation status and how to reproduce |
-| [`documents/development/causal_chain_plan.md`](documents/development/causal_chain_plan.md) | **Causal chain** — Step 0 done; Steps 1–4 spec for contraction → ORtg → wins |
+| [`DEVELOPER.md`](documents/development/DEVELOPER.md) | **Onboarding** — setup, pipeline, cohort, what's done vs. open |
+| [`findings.md`](documents/development/findings.md) | Full results — Pass 1 screens A–E, extensions, trigger taxonomy (retired), Phase A validation |
+| [`open_questions.md`](documents/development/open_questions.md) | Resolved decisions, architecture-prediction next steps |
+| [`CRITICAL_GAPS.md`](documents/development/CRITICAL_GAPS.md) | Trigger taxonomy gaps — **resolved by Phase A testing (taxonomy failed)** |
+| [`causal_chain_plan.md`](documents/development/causal_chain_plan.md) | Causal chain Steps 0–4 (Step 0 complete); needs revision for architecture framing |
 
 Root level is **runtime** (Makefile, `config.py`, `src/`). `documents/development/` is **research context**.
 
-## Cohort (18 players)
+## Cohort (31 players)
 
-Defined in `config.py`. Original 11-player sample expanded with DeRozan, Wall, CP3, LeBron, Kobe, Paul George, and Shai Gilgeous-Alexander.
+Defined in `config.py`. Groups A/B are legacy structure — not analytically load-bearing.
 
-- **Group A** (11): heliocentric creators — Harden, Westbrook, Luka, Trae, Iverson, Lillard, DeRozan, Wall, CP3, LeBron, SGA
-- **Group B** (7): scalable / wing stars — Curry, Klay, Ray Allen, Hamilton, Durant, Kobe, PG
+- **Group A** (20): Harden, Westbrook, Luka, Trae, Iverson, Lillard, DeRozan, Wall, CP3, LeBron, SGA, Butler, Embiid, Simmons, Brunson, Haliburton, Giannis, Jokic, Dirk, Fox
+- **Group B** (11): Curry, Klay, Ray Allen, Hamilton, Durant, Kobe, PG, Tatum, Harris, Kyrie, Mitchell
 
 ## Setup
 
@@ -37,88 +74,40 @@ make venv
 source .venv/bin/activate
 ```
 
-## Pass 1 pipeline
+## Pipeline
 
 ```bash
-make scrape              # → data/raw/*.csv  (NBA Stats API; ~30 min full cohort)
+make scrape              # → data/raw/*.csv  (NBA Stats API; ~60 min full cohort)
 make validate-scrape
 make features            # → data/processed/analysis_table.csv
 make screen-a            # floor-game rates (raw)
 make screen-b            # within-series gradient
 make screen-c            # group comparisons
+make screen-e            # mechanism taxonomy (resolved background)
+make screen-f            # trigger taxonomy (retired — run for reference only)
+make screen-a-adj        # opponent-adjusted floor rates
+make retention           # RS vs PO retention baselines
 make visualize           # → output/figures/
+make trigger-sensitivity # Phase A validation (sensitivity + null model + Bayesian + bootstrap)
 ```
 
-**Post-Pass-1 extensions:**
-
+Causal chain (Step 0 complete):
 ```bash
-make screen-a-adj        # opponent-adjusted floor rates → screen_a_adj_results.csv
-make retention           # RS vs PO retention baselines → retention_baselines.csv
-make screen-e            # mechanism taxonomy (contractor/forcer/mixed)
+make scrape-team-logs    # → data/raw/team_game_logs.csv (~50 min)
+make validate-team-logs
 ```
 
-Or `make all` after scrape (screens A–C + visualize). Smoke test: `make smoke-scrape` (Harden 2023-24 only).
-
-## Causal chain pipeline (Step 0 complete)
-
-```bash
-make scrape-team-logs      # → data/raw/team_game_logs.csv (~50 min; resumes if interrupted)
-make validate-team-logs    # join coverage + ORtg sanity gates
-```
-
-Step 1 (`join_causal_table.py`) not yet implemented — see [`causal_chain_plan.md`](documents/development/causal_chain_plan.md).
-
-## Pass 2 pipeline (partial)
-
-```bash
-make scrape-pbp              # 3 validation games → data/raw/pbp/
-make build-possessions       # → data/processed/pass2/possessions_*.csv
-make validate-possessions    # §6.1 validation gates
-```
-
-**Spike / estimation scripts:**
-
-```bash
-make event-frequency                    # Event A/B frequency from PBP sample → event_frequency_estimates.csv
-python src/pass2/cold_start_spike.py    # Harden vs Kobe case studies on validation games
-```
-
-To fetch additional PBP for a star player:
-
-```bash
-python src/pass2/ingest_pbp.py --game-id <GAME_ID>
-python src/pass2/possessions.py --game-id <GAME_ID>   # then build_and_save via possessions module
-```
-
-Validation fixture (tracked in git): `data/pass2_validation_games.json`
-
-## Current thesis (one sentence)
-
-> Under adversity, a star's offensive structure determines their failure mode (contraction vs. forcing); contraction is a stable career trait, and whether it is opponent-independent (Harden, PG) or scheme-dependent (SGA) distinguishes players the public narrative lumps together as "playoff chokers."
+Or `make all` after scrape (screens A–C + visualize).
 
 ## What to do next
 
-See **Remaining work** in [`open_questions.md`](documents/development/open_questions.md). Priority order:
+See **Suggested next tasks** in [`DEVELOPER.md`](documents/development/DEVELOPER.md). Priority order:
 
-1. **Causal chain Step 1** — join floor games to team ORtg; then test contraction → wins ([`causal_chain_plan.md`](documents/development/causal_chain_plan.md))
-2. **Pass 2 at scale** — same-game pre-event baselines on ~270 combined cold-start events
-3. **Out-of-sample validation** — train profile on first half of career, test on second half
-4. **Expand cohort** — Embiid, Butler, Mitchell for contractor/forcer taxonomy robustness
+1. **Architecture-prediction model** — measure RS scoring-mode concentration and FTA dependency; test whether they predict PO floor-game rate and severity
+2. **Rim abandonment vs full contraction → team outcomes** — join floor games to team ORtg; test whether PG-style rim abandonment produces different team outcomes than Harden-style full contraction
+3. **Defense as second axis** — integrate defensive metrics (on-off, matchup exposure) as independent risk dimension alongside offensive architecture
+4. **Causal chain Steps 1–4** — mechanism → team ORtg (architecture-framed, not taxonomy-framed)
 
 ## Data policy
 
-Everything under `data/` is gitignored **except** `data/pass2_validation_games.json`. Regenerate bulk data with the Makefile targets above; do not commit CSVs, cache, or PBP JSON.
-
-## Output files (generated, not in git)
-
-| File | Script |
-|------|--------|
-| `data/processed/analysis_table.csv` | `features.py` |
-| `data/processed/screen_a_results.csv` | `screen_a.py` |
-| `data/processed/screen_a_adj_results.csv` | `screen_a_adj.py` |
-| `data/processed/retention_baselines.csv` | `rs_retention_baseline.py` |
-| `data/processed/screen_e_results.csv` | `screen_e.py` |
-| `data/processed/event_frequency_estimates.csv` | `pass2/event_frequency.py` |
-| `data/processed/pass2/possessions_*.csv` | `pass2/possessions.py` |
-| `data/raw/team_game_logs.csv` | `scrape_team_logs.py` |
-| `data/processed/causal_analysis_table.csv` | `join_causal_table.py` *(planned)* |
+Everything under `data/` is gitignored **except** `data/pass2_validation_games.json`. Regenerate with Makefile targets; do not commit CSVs.
