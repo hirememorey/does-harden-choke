@@ -266,6 +266,96 @@ def matched_pairs(floor: pd.DataFrame) -> None:
     print()
 
 
+def gradient_binned_outcomes(floor: pd.DataFrame) -> pd.DataFrame:
+    """Swiss cheese axis: team outcomes in floor games by player gradient tertile."""
+    player_grad = (
+        floor.groupby("player_name")["player_gradient"]
+        .first()
+        .dropna()
+        .sort_values()
+    )
+    if len(player_grad) < 6:
+        logger.warning("Too few players with gradient — skipping gradient bins")
+        return pd.DataFrame()
+
+    tertiles = pd.qcut(player_grad, 3, labels=["flat", "moderate", "steep"])
+    grad_bins = player_grad.reset_index()
+    grad_bins.columns = ["player_name", "player_gradient_value"]
+    grad_bins["gradient_bin"] = tertiles.values
+    floor_grad = floor.merge(grad_bins[["player_name", "gradient_bin"]], on="player_name", how="inner")
+
+    summary = floor_grad.groupby("gradient_bin", observed=True).agg(
+        n_players=("player_name", "nunique"),
+        n_floor_games=("game_id", "count"),
+        mean_gradient=("player_gradient", "mean"),
+        mean_team_ortg=("team_off_rating", "mean"),
+        sem_team_ortg=("team_off_rating", lambda x: x.std() / np.sqrt(len(x))),
+        mean_fga_retention=("fga_retention", "mean"),
+        mean_game_score=("game_score", "mean"),
+        win_rate=("team_win", "mean"),
+    ).reset_index()
+
+    summary.to_csv(OUTPUT_DIR / "gradient_binned_outcomes.csv", index=False)
+
+    print("=== Floor Games by Player Gradient Tertile (Swiss Cheese Axis) ===")
+    print("  flat = opponent-insensitive; steep = opponent-sensitive")
+    print(summary.to_string(index=False))
+    print()
+
+    player_means = (
+        floor_grad.groupby(["player_name", "gradient_bin"], observed=True)
+        .agg(
+            player_gradient=("player_gradient", "first"),
+            mean_team_ortg=("team_off_rating", "mean"),
+            n_floor=("game_id", "count"),
+        )
+        .reset_index()
+    )
+    r, p = stats.pearsonr(player_means["player_gradient"], player_means["mean_team_ortg"])
+    print(f"  Player-level correlation (gradient vs mean floor-game team ORtg): r={r:.3f}, p={p:.4f}")
+    print()
+
+    return floor_grad
+
+
+def bar_gradient_team_ortg(floor_grad: pd.DataFrame) -> None:
+    """Figure 4: Mean team ORtg in floor games by gradient tertile."""
+    if floor_grad.empty:
+        return
+
+    summary = floor_grad.groupby("gradient_bin", observed=True).agg(
+        mean_ortg=("team_off_rating", "mean"),
+        sem=("team_off_rating", lambda x: x.std() / np.sqrt(len(x))),
+        n=("game_id", "count"),
+    ).reset_index()
+
+    order = ["flat", "moderate", "steep"]
+    summary["gradient_bin"] = pd.Categorical(summary["gradient_bin"], categories=order, ordered=True)
+    summary = summary.sort_values("gradient_bin")
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    colors = {"flat": "#2ca02c", "moderate": "#ff7f0e", "steep": "#d62728"}
+    bar_colors = [colors.get(b, "#888888") for b in summary["gradient_bin"]]
+
+    bars = ax.bar(
+        summary["gradient_bin"].astype(str),
+        summary["mean_ortg"],
+        yerr=1.96 * summary["sem"],
+        color=bar_colors,
+        capsize=5,
+        alpha=0.85,
+    )
+    for bar, n in zip(bars, summary["n"]):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1, f"n={n}", ha="center", fontsize=10)
+
+    ax.set_ylabel("Mean Team ORtg")
+    ax.set_xlabel("Player gradient tertile")
+    ax.set_title("Floor Games: Team ORtg by Opponent-Sensitivity Gradient\n(flat = unpredictable floors; steep = gameplan-able floors)")
+    ax.set_ylim(90, 115)
+    save_fig(fig, "causal_bar_gradient_ortg")
+    plt.close(fig)
+
+
 def teammate_efficiency_proxy(floor: pd.DataFrame) -> None:
     """2d. Teammate efficiency under contraction vs forcing."""
     floor = floor.copy()
@@ -303,15 +393,18 @@ def main() -> None:
     within_player_retention_split(floor)
     matched_pairs(floor)
     teammate_efficiency_proxy(floor)
+    floor_grad = gradient_binned_outcomes(floor)
 
     scatter_fga_retention_vs_ortg(floor)
     bar_mechanism_team_ortg(floor)
     harden_retention_quartile_bar(floor)
+    bar_gradient_team_ortg(floor_grad)
 
     print("=== Figures saved to output/figures/ ===")
     print("  causal_scatter_fga_retention_vs_ortg.png")
     print("  causal_bar_mechanism_ortg.png")
     print("  causal_harden_retention_quartile.png")
+    print("  causal_bar_gradient_ortg.png")
 
 
 if __name__ == "__main__":

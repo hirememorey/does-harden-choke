@@ -1,6 +1,6 @@
 # Developer Onboarding
 
-**Last updated:** June 14, 2026 (thesis pivot — trigger taxonomy retired after Phase A validation failure; architecture-prediction framing adopted)
+**Last updated:** June 17, 2026 (foul-type video classification tool spec complete; `videoeventsasset` API verified)
 
 This guide gets a new contributor from clone to running analyses to understanding what is settled vs. open. Read this first, then [`findings.md`](findings.md) for results and [`open_questions.md`](open_questions.md) for what's next.
 
@@ -16,11 +16,15 @@ A quantitative study of playoff failure modes across 31 HOF-caliber NBA players 
 
 2. **Trigger taxonomy (Screen F, retired):** Attempted to classify *when* floor games happen based on opponent-quality terciles. Produced a 5-bucket classification (opponent-independent, scheme-dependent, disengagement, bimodal, standard). **Failed Phase A validation** (June 2026): 31% split-sample concordance, 23% gradient stability. The taxonomy is not a stable trait. Retired as primary axis; gradient signal (continuous) retained as descriptive measure.
 
-3. **Architecture prediction (current, in progress):** Can you predict a star's playoff floor-game risk from their regular-season scoring architecture? This is where a new developer should focus.
+3. **Architecture prediction (dead) → Foul-type video classification (current):** The predictive path forward is foul discretion — classifying shooting fouls by whether the contact is always-called or marginally-called. This requires video review. Tool spec complete; implementation is next. See [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md).
 
 ### Current thesis
 
 > A star's regular-season scoring architecture — how many independent modes they have, how dependent they are on getting to the line, and how their volume contracts in bad games — predicts their playoff floor-game vulnerability better than any opponent-based trigger classification.
+
+**Update (June 15, 2026):** The predictive claim above has been tested and failed. Shot-chart mode independence has no discriminative power. RS opponent-independence marginally predicts PO floor rate (r = −0.32, p = 0.09) but the signal is fragile. The honest contribution is **descriptive**, not predictive. See Section I of `open_questions.md` for the full assessment and open questions.
+
+**Update (June 17, 2026):** The FTA shift deep-dive (Phase E) produced the project's strongest finding (r = −0.53, p = 0.002). The predictive loop doesn't close because FTA shift is retrospective. The path forward is **foul-type video classification** — classifying shooting fouls by discretion (always-called vs marginally-called vs sought) to see if RS foul-discretion composition predicts FTA shift direction. Tool spec is in [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md). The `videoeventsasset` API is verified working.
 
 ### Key variables for the architecture model
 
@@ -164,49 +168,73 @@ Defined in `config.py`. Groups A/B are legacy — not analytically load-bearing.
 | Null model: gradient signal is real | Extreme gradients exceed chance (p = 0.009) | `trigger_sensitivity.py` |
 | Bayesian: 42% of players uncertain | Hard labels premature for many players | `trigger_sensitivity.py` |
 | Bootstrap: 84% tercile CI overlap | Tercile-level floor rates not statistically distinguishable | `trigger_sensitivity.py` |
+| **Box-score architecture model failed (R² = 0.128)** | Below 0.25 bar; HHI-3 can't capture mode interdependence | `architecture_model.py` |
+| FTA dependency is only architecture signal | r = +0.30, p = 0.098 vs PO floor rate (marginal) | `architecture_model.py` |
+| FGA retention does not predict frequency | r = -0.06, p = 0.76 — stable trait that doesn't predict when floors happen | `architecture_model.py` |
+| **Shot-chart mode_independence_score is dead metric** | Range 0.315–0.340 across 31 players; no discriminative power | `shot_chart_features.py` |
+| **Mode-collapse profiles are descriptively diagnostic** | Harden: 3PT share −11pp, FT share +11pp in floor games — FT can't compensate | `shot_chart_features.py` |
+| **RS opponent-independence marginally predicts PO floor rate** | r = −0.315, p = 0.09; fragile (remove Jokic/Giannis → r = −0.12) | Ad-hoc analysis (June 15) |
+| **Binary split (flat vs steep RS gradient) is null** | +0.7pp PO floor rate difference, p = 0.80 | Ad-hoc analysis (June 15) |
 
 ---
 
-## What to build next (priority order)
+## What to build next
 
-### 1. Architecture-prediction model (HIGH — the new primary axis)
+### Foul-type video classification tool (priority 1)
 
-**Goal:** Predict playoff floor-game rate and severity from regular-season architecture.
+The project's path to a predictive contribution. See [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md) for the full spec.
 
-**Script:** `src/architecture_model.py` (not yet written)
+**What to build:**
+1. `src/foul_type_scraper.py` — Filter PBP for shooting fouls, fetch video URLs via `videoeventsasset` API, build clip manifest
+2. `src/foul_type_classifier.py` — Generate self-contained HTML classification tool from manifest
 
-**Variables to compute for each player-season:**
-- RS FGA retention (already in retention baselines)
-- RS FTA/FGA ratio (FTA dependency)
-- RS FTA retention (rim-abandonment indicator)
-- Scoring mode concentration: what % of points come from the top-1 / top-2 scoring modes (rim, midrange, three, FT)
-- RS floor-game rate (the base rate)
+**Alpha test:** Harden vs Giannis, 5 RS games each (~80 clips, ~25 minutes of classification). If `sought%` is dramatically different → proceed to full sample. If similar → kill the foul-type hypothesis.
 
-**Test:** Does RS architecture predict PO floor-game rate (cross-player regression) and PO floor-game severity (within-player, conditional on flooring)?
+**Key technical notes:**
+- `videoeventsasset` API (NOT `videodetailsasset`, which returns 500) returns direct MP4 URLs
+- Use 960x540 resolution (`murl` field) — good enough for arm/body distinction
+- PBP `actionNumber` maps to `GameEventID` in the video API (verify on multiple games)
+- Three-axis classification: mechanism (what you see) + discretion (why the whistle blew) + location (where it happened)
 
-**Success criteria:** An RS-only model that predicts PO floor-game rate with R² > 0.25 across the 31-player cohort.
+### Decision point: descriptive or predictive?
 
-**Failure mode:** If RS architecture has no predictive power, the project's publishable contribution is the descriptive findings (mechanism taxonomy, trait stability, opponent adjustment, narrative debunking).
+This project has tested four predictive hypotheses and failed to clear a reasonable bar on any of them:
 
-### 2. Rim abandonment vs full contraction → team outcomes
+| Phase | Hypothesis | Result |
+|-------|-----------|--------|
+| A | Trigger taxonomy is a stable trait | KILLED (31% split-sample concordance) |
+| B | Box-score architecture predicts PO floor rate | KILLED (R² = 0.128) |
+| C | Shot-chart mode independence predicts PO floor rate | KILLED (metric has no variance) |
+| D | RS opponent-independence predicts PO floor rate | MARGINAL (r = −0.32, p = 0.09, fragile) |
 
-**Goal:** Test whether PG-style rim abandonment and Harden-style full contraction produce different team consequences.
+The next developer should decide whether to:
+- **(A) Pursue the marginal signal** — try to extract more from the RS opponent-independence finding with better methods (multilevel models, different DVs, expanded cohort)
+- **(B) Accept the descriptive contribution** — write up what we have (contraction stability, mechanism–frequency independence, opponent adjustment, mode-collapse profiles, "playoff whistle" debunking) as a descriptive study
+- **(C) Pivot to a new question** — e.g., "when stars floor, what breaks?" (mode-collapse profiles as primary), or coasting as a qualitative framework
 
-**Script:** Extend `join_causal_table.py` and `mechanism_descriptives.py`
+### Option A: Pursue the marginal signal
 
-**Method:** Among floor games, does the type of contraction (FTA-specific vs total volume) predict team ORtg, controlling for individual game score? This is a narrower, more testable version of the original causal chain.
+| Step | What | Why |
+|------|------|-----|
+| 1 | Game-level multilevel model: `is_floor ~ rs_gradient + opponent_defrtg + (1|player)` on PO games | Uses full ~8000 PO games instead of 30 career averages; handles player-level uncertainty better |
+| 2 | Try different DVs: PO FGA retention shift, PO mean Game Score, PO Game Score variance | PO floor rate is noisy (30–300 PO games); more stable DVs might show clearer signal |
+| 3 | Expand cohort below HOF tier to ~60–80 players | Would need r ≈ −0.32 to clear p < 0.01 at n = 80; marginal but feasible if signal is real |
 
-### 3. Defense as second axis
+### Option B: Descriptive contribution (recommended if Option A fails)
 
-**Goal:** Add defensive vulnerability alongside offensive architecture for a two-axis risk profile.
+| Step | What | Why |
+|------|------|-----|
+| 1 | Formalize mode-collapse profiles as the primary contribution | Per-mode collapse tables (Harden: 3PT −11pp / FT +11pp; Klay: 3PT −14pp / nothing absorbs; Embiid: RA −6pp / FT +6pp) are coaching-actionable and descriptively novel |
+| 2 | Write up the "FT can't compensate" finding | Foul-dependent players (Harden, Embiid) lean on FT in floor games but FT alone can't carry offense — this contradicts the "playoff whistle" narrative for these players specifically |
+| 3 | Document the negative predictive results honestly | Four failed hypotheses are themselves a contribution — the field should know that RS observables don't predict PO floor-game risk at usable precision |
 
-**Variables:** On-off defensive rating, matchup-dependent exposure, defensive floor-game equivalent (if definable).
+### Option C: New questions
 
-**Why:** KAT's playoff narrative flip is a defensive story, not an offensive one. Harden's is offensive. A complete risk model needs both axes.
-
-### 4. Causal chain Steps 1–4 (architecture-framed)
-
-Revise the causal chain plan from trigger-type → team outcomes to architecture-type → team outcomes. The data infrastructure (Step 0) is complete; the join and regression specs need updating.
+| Question | Approach | Data needed |
+|----------|----------|-------------|
+| What breaks when stars floor? | Mode-collapse profiles as primary axis; qualitative case studies | Already computed in `shot_chart_architecture.csv` |
+| Can coasting be de-risked by team composition? | Case studies: Jokic (coaster, championship), Giannis (coaster, championship), Butler (coaster, Finals runs) | Existing data + team-level context |
+| Is floor-game variance itself a trait? | Cross-player comparison of Game Score variance in RS vs PO | Existing `analysis_table.csv` |
 
 ---
 
@@ -243,6 +271,9 @@ Full results in `data/processed/trigger_sensitivity.csv`, `trigger_null_model.cs
 | Onboarding / running code | This file + `README.md` |
 | Full results | `findings.md` |
 | What's decided vs. open | `open_questions.md` |
+| Shot chart integration plan | `inbox/2026-06-14/shot-chart-integration-plan.md` (work-log repo) |
 | Trigger taxonomy gaps (historical) | `CRITICAL_GAPS.md` |
 | Causal chain implementation | `causal_chain_plan.md` |
+| Foul-type video classification (scoping) | `foul_type_video_plan.md` |
+| Foul-type classifier tool (build spec) | `foul_type_classifier_plan.md` |
 | Original Pass 1 design | `pass1_plan.md` |

@@ -1,9 +1,9 @@
 # Open Questions — Status
 
-**Date:** June 2026 | **Last updated:** June 14, 2026 (trigger taxonomy retired; architecture-prediction pivot)
-**Context:** Pass 1 complete and extended. Trigger taxonomy (Screen F) completed Phase A validation and **failed split-sample** — retired as primary axis. Project pivoting to architecture-prediction framing. Five pre-scaling questions from March 2026 are resolved below. Critical gaps resolved by Phase A testing. New next steps at the end.
+**Date:** June 2026 | **Last updated:** June 17, 2026 (FTA shift deep-dive: project's strongest finding)
+**Context:** Pass 1 complete and extended. Trigger taxonomy retired (Phase A). Architecture model failed (Phases B/C). FTA shift analysis (Phase E, June 17) produced r = −0.528, p = 0.002 — the project's strongest predictor. Split-half stability moderate (r = 0.45) but predictive test fails (H1 → H2 floor rate: r = −0.16). Missing variable identified: foul type (requires video classification). Five pre-scaling questions from March 2026 are resolved below.
 
-Evidence lives in [`findings.md`](findings.md). Onboarding: [`DEVELOPER.md`](DEVELOPER.md). Phase A scripts: `src/trigger_sensitivity.py`, `src/validate_trigger_stability.py`.
+Evidence lives in [`findings.md`](findings.md). Onboarding: [`DEVELOPER.md`](DEVELOPER.md). FTA deep-dive: `src/fta_dependency_deepdive.py`. Video plan: [`foul_type_video_plan.md`](foul_type_video_plan.md).
 
 ---
 
@@ -192,38 +192,130 @@ Phase A validation executed. Gaps 3 and 1 were tested; Gap 1 failed, killing the
 
 ---
 
-## H. New next steps — Architecture prediction (June 14, 2026)
+## H. Architecture prediction — Phase B results (June 14, 2026)
 
-The project's new primary question: **Can you predict a star's playoff floor-game risk from their regular-season scoring architecture?**
+### H1. Box-score architecture model — FAILED (R² = 0.128)
 
-### H1. Architecture-prediction model (HIGH PRIORITY)
+**Script:** `src/architecture_model.py` (written and run)
 
-**Script:** `src/architecture_model.py` (not yet written)
+**What was tested:** Career-level cross-player regression (n=31) — RS FGA retention, RS FTA/FGA ratio, HHI scoring concentration (3-mode: 2PM/3PM/FT), pct points from FT → PO floor-game rate.
 
-Compute per player-season:
-- RS FGA retention in floor games (already computed)
-- RS FTA/FGA ratio (FTA dependency)
-- RS FTA retention in floor games (rim-abandonment indicator)
-- Scoring mode concentration (% of points from top-1/top-2 modes)
-- RS floor-game rate (base rate)
+**Results:**
 
-**Test:** Cross-player regression — do RS architecture variables predict PO floor-game rate and severity?
+| Variable | r vs PO floor rate | p |
+|---|---|---|
+| RS FTA/FGA ratio | +0.303 | 0.098 |
+| % points from FT | +0.313 | 0.086 |
+| RS floor rate | -0.258 | 0.162 |
+| HHI scoring (3-mode) | -0.182 | 0.328 |
+| RS FGA retention | -0.056 | 0.763 |
+| RS FTA retention | -0.003 | 0.988 |
 
-**Success:** R² > 0.25 across 31 players. Partial effects interpretable.
+Full model R² = 0.128. Parsimonious (FGA retention + FTA ratio) R² = 0.095. Player-season pooled R² = 0.010.
 
-**Failure:** If RS architecture has no predictive power, the project's contribution is descriptive only (mechanism taxonomy, trait stability, opponent adjustment, narrative debunking).
+**Why it failed:** The 3-mode HHI (2PM/3PM/FT point shares) cannot capture scoring-mode interdependence. Harden has the *lowest* HHI in the cohort (most diversified) but the highest floor rate — because his rim attacks and foul drawing are the same action. When one collapses, both collapse. HHI measures spread, not independence.
 
-### H2. Rim abandonment vs full contraction → team outcomes
+**What survives:** FTA dependency is the only marginal signal (r = +0.30, p = 0.098). Foul-dependent scorers floor more in the playoffs. FGA retention — the project's most robust finding (r = 0.72 RS→PO) — does NOT predict floor-game frequency. How you contract is stable; it doesn't predict how often.
 
-Among floor games, does contraction type (FTA-specific vs total volume) predict team ORtg controlling for individual game score? This is a narrower, testable version of the causal chain.
+**Output:** `data/processed/architecture_career_table.csv`, `architecture_season_table.csv`, `output/figures/architecture_career_scatter.{png,svg}`, `architecture_correlation_heatmap.{png,svg}`
+
+### H2. Shot chart mode independence — NEXT BUILD
+
+The box-score model's failure is a measurement problem, not a thesis problem. The thesis (mode interdependence drives floor-game vulnerability) requires per-shot zone data from `shotchartdetail` to compute:
+
+- **HHI-5** — Herfindahl across 5 modes (Restricted Area, Paint, Mid-Range, 3PT, FT)
+- **Mode independence score** — average pairwise correlation of mode shares across games
+- **Tertiary mode count** — modes contributing ≥15% of scoring
+- **Floor-game mode collapse** — which modes drop in floor games vs non-floor games
+
+**Full plan:** `inbox/2026-06-14/shot-chart-integration-plan.md` (work-log repo). API endpoint verified working. ~18 min scrape for full cohort.
+
+**Success criterion:** R² > 0.25 career-level with shot-chart variables.
+
+**Kill:** If shot-chart architecture also fails, the project's contribution is descriptive only.
 
 ### H3. Defense as second axis
 
-KAT's story is defensive vulnerability hidden by system — a different axis from Harden's offensive contraction. A complete risk model needs both. Integration of on-off defensive metrics alongside offensive architecture.
+KAT's story is defensive vulnerability hidden by system — a different axis from Harden's offensive contraction. A complete risk model needs both. Integration of on-off defensive metrics alongside offensive architecture. Lower priority than H2.
 
 ### H4. "Playoff whistle" as player-specific, not universal
 
-The cohort shows no systematic FTA decline. But individual variation is large (Harden −13%, Dirk +31%). Test whether player-specific RS→PO FTA shift predicts floor-game rate as an architecture variable.
+The cohort shows no systematic FTA decline. But individual variation is large (Harden −13%, Dirk +31%). This is subsumed by H2 — player-specific FTA shift is computable from existing box scores and is already an IV in `architecture_model.py`.
+
+### H5. RS opponent-independence → PO floor rate (June 15, 2026) — MARGINAL, FRAGILE
+
+**Question:** Do players who floor equally against strong and weak opponents in the RS have higher PO floor-game rates?
+
+**Rationale:** If RS floor games are opponent-independent (flat gradient across opponent quality terciles), that suggests the player's bad games are unhideable — no system or scheme can prevent them. Opponent-dependent RS floorers (coasters who only floor vs weak D, or scheme-suppressed players who only floor vs strong D) have a lever: their floor games are conditional and potentially manageable in the playoffs.
+
+**Method:** Compute RS opponent-gradient per player (floor_rate_vs_weak_D − floor_rate_vs_strong_D using league-wide DEF_RATING terciles). Test whether |gradient| (opponent-independence) predicts PO floor rate at career level (n=30).
+
+**Results:**
+
+| Test | Result |
+|------|--------|
+| Career-level r (n=30) | r = −0.315, p = 0.090 |
+| Bootstrap 95% CI | [−0.607, +0.090] (crosses zero) |
+| Binary split (flat vs steep) | +0.7pp difference, p = 0.80 |
+| Without Jokic + Giannis | r = −0.120, p = 0.544 |
+| Season-level (n=97) | Simpson's paradox: r = +0.222, opposite direction |
+
+**Verdict:** Direction consistent with hypothesis but underpowered and fragile. The continuous correlation is marginal (p=0.09). The binary split is null. Removing two leverage points (Jokic, Giannis) kills the signal. Cannot confirm or reject the hypothesis.
+
+**Status:** Open. Needs either a larger cohort or a different analytical approach (see next steps below).
+
+### H6. Shot-chart mode_independence_score — DEAD METRIC (June 15, 2026)
+
+**Finding:** The `mode_independence_score` computed from `shotchartdetail` data has a range of 0.315–0.340 across 31 players. All players appear equally mode-independent. The metric has no discriminative power and cannot predict PO floor rates.
+
+**Why it failed:** Per-game zone shares are compositional (sum to 1.0 for FGA zones). When one zone share goes up, others mechanically go down, inducing negative correlations between all zone pairs. This compresses the average absolute correlation into a narrow band regardless of a player's actual scoring architecture.
+
+**What survives from shot charts:** The mode-collapse profiles (per-mode share shift in floor vs non-floor games) are diagnostically valuable descriptively — they show *what breaks* when a player floors — even though they cannot predict *whether* a player will floor.
+
+---
+
+## I. Where the project stands (June 17, 2026)
+
+### What we know (robust)
+
+1. **FTA per-36 shift is the strongest predictor of PO floor-game rate** — r = −0.528, p = 0.002. Players who lose FTAs in playoffs floor more. Bootstrap CI excludes zero. No single player dominates (LOO max influence = 0.051).
+2. **FGA and FTA co-collapse in floor games** — r = +0.428, p = 0.016. Foul-dependent scoring fails as a single action.
+3. **Losing rim access costs FTAs** — RA shift → FTA shift: r = +0.521, p = 0.003. Drive shift → FTA shift: r = +0.518, p = 0.003.
+4. **Combined FTA + FGA shift model explains 40% of career-level variance** — R² = 0.396, both predictors significant.
+5. **FTA dependency is significant at game level** — multilevel (n=3,269): β = −0.024, p = 0.019. Base-rate risk factor (interaction with opponent quality null, p = 0.226).
+6. **FTA shift is moderately stable across career halves** — split-half r = +0.451, p = 0.016. Sign concordance 79%.
+7. **Contraction is a stable career trait** (r = 0.72 RS→PO FGA retention). But trait stability does not predict frequency.
+8. **The cohort-wide playoff floor effect is explained by opponent quality** (p = 0.83 after adjustment).
+9. **The "playoff whistle" is not universal** — 15/31 increase FTA rate; cohort mean shift −0.05. Individual variation is the signal.
+10. **ICC for floor games is nearly zero (0.022)** — only 2% of floor-game variance is between-player. Floor games are overwhelmingly a game-level phenomenon.
+
+### What we tried and killed
+
+| Hypothesis | Method | Result | Status |
+|---|---|---|---|
+| Trigger taxonomy is a stable trait | Split-sample validation (Phase A) | 31% concordance | **KILLED** |
+| Box-score architecture predicts PO floor rate | Career-level OLS (Phase B) | R² = 0.128 | **KILLED** |
+| Shot-chart mode independence predicts PO floor rate | Career-level OLS (Phase C) | metric range 0.315–0.340, no variance | **KILLED** |
+| RS opponent-independence predicts PO floor rate | Correlation + binary split (Phase D) | r = −0.315, p = 0.09; fragile | **KILLED** (Jokic/Giannis dependent) |
+| RS floor rate predicts PO floor rate | Correlation | r = −0.02, p = 0.91 | **NULL** |
+| RS FTA dependency predicts PO floor rate (career) | Correlation | r = +0.303, p = 0.098; Embiid dependent | **MARGINAL** |
+| H1 FTA shift predicts H2 PO floor rate | Predictive split | r = −0.164, p = 0.403 | **NULL** |
+
+### The honest assessment
+
+The project has found a strong *descriptive* predictor (FTA shift, r = −0.53) but has not closed the *predictive* loop. The FTA shift is retrospective — you can't observe it before the playoffs happen. The trait is moderately stable (r = 0.45 split-half) but not stable enough to project forward.
+
+The missing variable is **foul discretion**: whether a player's shooting fouls come from contact that refs always call (through-body finish, clean arm contest) or contact that refs can choose not to call (arm hooks, rip-throughs, pump-fake jump-intos). This is not measurable from box scores or PBP text — it requires video classification of shooting fouls. The PBP proxy (Option C in the original plan) is dead — shot subtype and drive-rate cannot disambiguate foul discretion (Harden drives plenty but traps arms; and-1s happen on the perimeter). See [`foul_type_video_plan.md`](foul_type_video_plan.md) and [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md).
+
+The descriptive contributions are real and publishable: FTA-FGA co-collapse mechanism, the "playoff whistle" debunking, contraction stability, mode-collapse profiles, and five honestly reported negative predictive results. The predictive claim — "can you identify which stars will lose their FTAs in advance?" — requires the foul-type classification to answer.
+
+### What the next phase requires
+
+1. **Foul-type video classification** — Classify shooting fouls by type using NBA.com video review data. If RS foul-type composition predicts FTA shift direction, the full chain closes: RS foul-type → predicted FTA shift → predicted PO floor risk. This is the only path to a predictive contribution. See [`foul_type_video_plan.md`](foul_type_video_plan.md).
+
+2. **Causal chain re-specification** — The causal chain infrastructure exists but tests the wrong hypothesis (trigger type → team outcomes). Reframe around continuous FTA shift: does FTA shift predict team ORtg in floor games?
+
+3. **Cohort expansion for stability** — 28 players in split-half test. More players would tighten the stability estimate and potentially move the predictive test from r = −0.16 to something meaningful — or confirm it's genuinely null.
 
 ---
 
@@ -263,3 +355,34 @@ The cohort shows no systematic FTA decline. But individual variation is large (H
 | Jun 14, 2026 | "Playoff whistle" narrative confirmed as mostly myth — 15/31 increase FTA rate in playoffs; cohort mean shift −0.05 |
 | Jun 14, 2026 | **Project pivots to architecture-prediction framing** — can RS scoring architecture predict PO floor-game risk? |
 | Jun 14, 2026 | Causal chain plan needs revision from trigger-type → architecture-type framing |
+| Jun 14, 2026 | `architecture_model.py` written and run — box-score model R² = 0.128, **FAIL** (below 0.25 bar) |
+| Jun 14, 2026 | FTA dependency is only signal (r=+0.30, p=0.098); FGA retention (r=-0.06) and HHI-3 (r=-0.18) are null |
+| Jun 14, 2026 | Diagnosis: 3-mode box-score HHI cannot capture mode interdependence; Harden is most "diversified" but most vulnerable |
+| Jun 14, 2026 | `shotchartdetail` API tested — returns per-shot ACTION_TYPE, SHOT_ZONE_BASIC, GAME_ID. Verified working. |
+| Jun 14, 2026 | Shot chart integration plan written: `inbox/2026-06-14/shot-chart-integration-plan.md` |
+| Jun 14, 2026 | **Next build: `scrape_shot_charts.py` → `shot_chart_features.py` → extend `architecture_model.py`** |
+| Jun 14, 2026 | Causal chain Steps 1-3 also run (pre-pivot framing) — infrastructure reusable but regressions test wrong hypothesis |
+| Jun 14, 2026 | `join_causal_table.py` updated: adds player_gradient, rim_abandonment_index, rs_fta_shift; 21,894 joined rows |
+| Jun 15, 2026 | Shot-chart architecture model run (Phase C) — `mode_independence_score` has no discriminative power (range 0.315–0.340); combined model does not improve on box-score R² = 0.128 |
+| Jun 15, 2026 | Mode-collapse profiles computed: Harden's FT share *rises* 11pp in floor games (FT can't compensate for 3PT failure); contradicts "playoff whistle" narrative for Harden specifically |
+| Jun 15, 2026 | RS opponent-independence → PO floor rate tested (Phase D): r = −0.315, p = 0.09 at career level; direction consistent with hypothesis but fragile (removing Jokic/Giannis kills signal) |
+| Jun 15, 2026 | Binary split (flat vs steep RS gradient): +0.7pp PO floor rate difference, p = 0.80 — null |
+| Jun 15, 2026 | Season-level Simpson's paradox: r = +0.222 at season level (opposite direction from career level) |
+| Jun 15, 2026 | **Honest assessment: no RS-observable predictor clears a reasonable bar for predictive contribution.** FTA dependency (r=+0.30) and RS opponent-independence (r=−0.32) are marginal directional signals only. |
+| Jun 15, 2026 | **Project's contribution is descriptive, not predictive.** See Section I for open questions for next developer. |
+| Jun 17, 2026 | **FTA shift deep-dive (Phase E):** FTA per-36 shift (PO−RS) → PO floor rate: r=−0.528, p=0.002, bootstrap CI [−0.72, −0.28] — project's strongest finding |
+| Jun 17, 2026 | FGA-FTA co-collapse confirmed: r=+0.428, p=0.016 — single-action collapse mechanism |
+| Jun 17, 2026 | RA shift → FTA shift: r=+0.521, p=0.003 — losing rim access costs free throws |
+| Jun 17, 2026 | Combined FTA+FGA shift model: R²=0.396 — explains 40% of career-level floor-rate variance |
+| Jun 17, 2026 | Game-level multilevel model: FTA dependency β=−0.024, p=0.019 (n=3,269 games). Interaction with opponent quality null (p=0.226) — base-rate risk factor |
+| Jun 17, 2026 | ICC for floor games = 0.022 — only 2% of variance is between-player; floor games are overwhelmingly game-level |
+| Jun 17, 2026 | FTA shift split-half stability: r=+0.451, p=0.016; sign concordance 79% — moderately stable trait |
+| Jun 17, 2026 | **Predictive test FAILS:** H1 FTA shift → H2 PO floor rate: r=−0.164, p=0.403 |
+| Jun 17, 2026 | RS FTA dependency → FTA shift: r=−0.254, p=0.168 — being FTA-dependent does NOT predict losing FTAs in PO |
+| Jun 17, 2026 | **Missing variable identified: foul type.** Players whose FTAs come from rim-finishing contact likely maintain FTAs (LeBron, Dirk); players whose FTAs come from perimeter foul-drawing likely lose them (Harden, Embiid). Requires video classification. |
+| Jun 17, 2026 | `fta_dependency_deepdive.py` written; `fta_collapse_profiles.csv` and 4-panel figure produced |
+| Jun 17, 2026 | **Project pivots to foul-type video classification as the path to predictive contribution.** See `foul_type_video_plan.md` |
+| Jun 17, 2026 | **PBP proxy (Option C) killed.** Shot subtype + location cannot disambiguate foul discretion — and-1s on the perimeter, Harden arm-traps on drives. Drive-rate is similarly confounded. |
+| Jun 17, 2026 | **Foul-type taxonomy revised to v2 (discretion axis).** Categories organized by observable contact mechanism (DRV-BODY, DRV-ARM, JMP-PUMP, etc.) + separate discretion tag (ALWAYS/MARGINAL/SOUGHT) + location. Alpha test is whether `sought%` differs between Harden and Giannis. See `foul_type_classifier_plan.md` |
+| Jun 17, 2026 | **`videoeventsasset` API verified working.** Returns direct 960x540 MP4 URLs for any play event. `videodetailsasset` (wrong endpoint) returns 500. |
+| Jun 17, 2026 | **Foul-type classifier tool spec complete.** `foul_type_classifier_plan.md` — keyboard-driven HTML classification tool. Two Python scripts: scraper (manifest) + classifier (HTML). Alpha test: Harden vs Giannis, 5 RS games each, ~80 clips. |

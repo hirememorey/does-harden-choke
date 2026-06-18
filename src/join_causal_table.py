@@ -1,4 +1,11 @@
-"""Causal chain Step 1 — join player analysis table to team game logs, compute per-game mechanism variables."""
+"""Causal chain Step 1 — join player analysis table to team game logs, compute per-game mechanism variables.
+
+Adds:
+- Per-game FGA/FTA/AST retention (relative to player non-floor baseline)
+- Player gradient from trigger taxonomy (Swiss cheese continuous axis)
+- Rim abandonment index per game (FGA retention − FTA retention)
+- RS→PO FTA shift from retention baselines
+"""
 
 from __future__ import annotations
 
@@ -104,6 +111,8 @@ def compute_per_game_retention(df: pd.DataFrame) -> pd.DataFrame:
         np.nan,
     )
 
+    df["rim_abandonment_index"] = df["fga_retention"] - df["fta_retention"]
+
     return df
 
 
@@ -121,6 +130,52 @@ def attach_mechanism_labels(df: pd.DataFrame) -> pd.DataFrame:
 
     labels = screen_e[available].rename(columns={"player": "player_name"})
     df = df.merge(labels, on="player_name", how="left", suffixes=("", "_e"))
+    return df
+
+
+def attach_player_gradient(df: pd.DataFrame) -> pd.DataFrame:
+    gradient_path = config.PROCESSED_DIR / "trigger_bootstrap_cis.csv"
+    if not gradient_path.exists():
+        logger.warning("trigger_bootstrap_cis.csv not found — skipping player gradient")
+        df["player_gradient"] = np.nan
+        return df
+
+    gradients = pd.read_csv(gradient_path)
+    if "gradient" not in gradients.columns or "player" not in gradients.columns:
+        logger.warning("Missing columns in trigger_bootstrap_cis.csv — skipping gradient")
+        df["player_gradient"] = np.nan
+        return df
+
+    grad_df = gradients[["player", "gradient"]].rename(
+        columns={"player": "player_name", "gradient": "player_gradient"},
+    )
+    df = df.merge(grad_df, on="player_name", how="left")
+    logger.info(
+        "Attached player gradient for %d/%d players",
+        df["player_gradient"].notna().sum(),
+        df["player_name"].nunique(),
+    )
+    return df
+
+
+def attach_fta_shift(df: pd.DataFrame) -> pd.DataFrame:
+    retention_path = config.PROCESSED_DIR / "retention_baselines.csv"
+    if not retention_path.exists():
+        logger.warning("retention_baselines.csv not found — skipping FTA shift")
+        df["rs_fta_shift"] = np.nan
+        return df
+
+    ret = pd.read_csv(retention_path)
+    needed = {"player", "variant", "rs_fta_retention", "po_fta_retention"}
+    if not needed.issubset(ret.columns):
+        logger.warning("Missing columns in retention_baselines.csv — skipping FTA shift")
+        df["rs_fta_shift"] = np.nan
+        return df
+
+    all_var = ret[ret["variant"] == "all"][["player", "rs_fta_retention", "po_fta_retention"]].copy()
+    all_var["rs_fta_shift"] = all_var["po_fta_retention"] - all_var["rs_fta_retention"]
+    all_var = all_var.rename(columns={"player": "player_name"})
+    df = df.merge(all_var[["player_name", "rs_fta_shift"]], on="player_name", how="left")
     return df
 
 
@@ -153,7 +208,9 @@ def validate(df: pd.DataFrame, original_n: int) -> None:
     inf_count = np.isinf(floor_fga_ret.dropna()).sum() if len(floor_fga_ret.dropna()) else 0
     logger.info("fga_retention inf count in floor games: %d", inf_count)
 
-    # Spot check: Harden 2017 G6 vs SAS
+    gradient_coverage = df.groupby("player_name")["player_gradient"].first().notna().mean()
+    logger.info("Player gradient coverage: %.1f%% of players", 100 * gradient_coverage)
+
     harden_2017_g6 = df[
         (df["player_name"] == "James Harden")
         & (df["season"] == "2016-17")
@@ -163,14 +220,17 @@ def validate(df: pd.DataFrame, original_n: int) -> None:
     if len(harden_2017_g6) > 0:
         sample = harden_2017_g6.iloc[0]
         logger.info(
-            "Spot check — Harden PO floor game: game_score=%.1f, fga_retention=%.2f, team_ORtg=%.1f, WL=%s",
+            "Spot check — Harden PO floor game: game_score=%.1f, fga_retention=%.2f, fta_retention=%.2f, rim_abandon=%.2f, team_ORtg=%.1f, WL=%s, gradient=%.3f",
             sample["game_score"],
             sample.get("fga_retention", np.nan),
+            sample.get("fta_retention", np.nan),
+            sample.get("rim_abandonment_index", np.nan),
             sample.get("team_off_rating", np.nan),
             sample.get("wl", "?"),
+            sample.get("player_gradient", np.nan),
         )
     else:
-        logger.info("Spot check: no Harden PO floor games in 2016-17 found (may be different season ID)")
+        logger.info("Spot check: no Harden PO floor games in 2016-17 found")
 
 
 def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -178,7 +238,7 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
         "player_name", "is_floor_primary", "game_score", "minutes",
         "fga", "fta", "ast", "tov", "pts", "is_playoff",
         "opponent", "home_away", "player_group",
-        "def_rating_y", "series_game_num", "is_elimination",
+        "opponent_defrtg", "series_game_num", "is_elimination",
         "plus_minus", "game_id", "team_id", "season", "game_date",
         "is_injury_flagged",
     ]
@@ -192,16 +252,20 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
         "fga_per36", "fta_per36", "ast_per36",
         "baseline_fga_per36", "baseline_fta_per36", "baseline_ast_per36",
         "fga_retention", "fta_retention", "ast_retention",
+        "rim_abandonment_index",
     ]
 
     mechanism_cols = ["mechanism", "vol_share"]
+
+    gradient_cols = ["player_gradient", "rs_fta_shift"]
 
     available_player = [c for c in player_cols if c in df.columns]
     available_team = [c for c in team_cols if c in df.columns]
     available_derived = [c for c in derived_cols if c in df.columns]
     available_mechanism = [c for c in mechanism_cols if c in df.columns]
+    available_gradient = [c for c in gradient_cols if c in df.columns]
 
-    all_cols = available_player + available_team + available_derived + available_mechanism
+    all_cols = available_player + available_team + available_derived + available_mechanism + available_gradient
     return df[all_cols]
 
 
@@ -214,6 +278,8 @@ def main() -> None:
     merged = join_player_team(players, teams)
     merged = compute_per_game_retention(merged)
     merged = attach_mechanism_labels(merged)
+    merged = attach_player_gradient(merged)
+    merged = attach_fta_shift(merged)
     merged = add_team_win(merged)
 
     validate(merged, original_n)

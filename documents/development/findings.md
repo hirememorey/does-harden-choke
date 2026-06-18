@@ -1,8 +1,8 @@
 # Does Harden Choke? — Findings
 
-**Date:** June 2026 (Pass 1: March 2026; extensions: June 2026)  
+**Date:** June 2026 (Pass 1: March 2026; extensions: June 2026; FTA deep-dive: June 17 2026)  
 **Project:** `does-harden-choke`  
-**Status:** Pass 1 complete (Screens A–E) + extensions (opponent adjustment, RS retention baselines, event frequency). Pass 2 parser validated; possession analysis at spike scale (~69 games).
+**Status:** Pass 1 complete (Screens A–E) + extensions (opponent adjustment, RS retention baselines, event frequency). Trigger taxonomy retired (Phase A). Architecture model failed (Phase B/C). FTA shift analysis (Phase E) produced the project's strongest finding. Pass 2 parser validated; possession analysis at spike scale (~69 games).
 
 **Cohort:** 31 players, ~31,000 games in `analysis_table.csv`
 
@@ -12,39 +12,42 @@
 
 The original hypothesis asked whether James Harden's playoff reputation reflects a **variance shift** that **compounds late in series** because opponents adapt to heliocentric offense — and whether that pattern distinguishes Group A from Group B.
 
-**Verdict (updated):** The adaptation story is dead (H2 rejected). The aggregate "playoffs cause more floor games" story is also dead after opponent adjustment. What survives is a **trigger taxonomy**.
+**Verdict (updated June 17 2026):** The adaptation story is dead (H2 rejected). The aggregate "playoffs cause more floor games" story is dead after opponent adjustment. The trigger taxonomy was retired after failing split-sample validation (Phase A). The architecture model failed (Phases B/C). What survived and strengthened:
+
+### The actual finding: FTA shift as the primary risk signal
+
+**Players whose free throw attempts per 36 minutes drop from regular season to playoffs have significantly more floor games (r = −0.528, p = 0.002, bootstrap 95% CI [−0.72, −0.28]).** This is the project's strongest statistical result by a wide margin.
+
+The mechanism is a single-action collapse: FGA and FTA co-collapse in playoff floor games (r = +0.428, p = 0.016) because for foul-dependent scorers, the drive-and-draw-contact IS the scoring action. When the rim is walled off or the calls don't come, both the shot attempt and the foul disappear simultaneously. There is no secondary mode to absorb the load. Shot chart data confirms: losing restricted area access predicts losing free throw attempts (RA shift → FTA shift: r = +0.521, p = 0.003).
+
+This is NOT the "playoff whistle" narrative. The cohort-wide FTA shift is essentially zero (15/31 players *increase* FTA rate). The finding is player-specific: some players consistently gain FTAs in the playoffs (LeBron +0.4/36, Dirk +1.7/36, Brunson +1.3/36), others consistently lose them (Harden −1.1/36, Embiid −1.2/36, Fox −1.8/36). The question is *why*.
+
+### The predictive gap
+
+The FTA shift is moderately stable across career halves (split-half r = +0.451, p = 0.016; sign concordance 79%). Harden consistently loses FTAs; LeBron consistently gains them; Dirk consistently gains them. But it is NOT stable enough to predict future floor rates: first-half FTA shift → second-half PO floor rate is r = −0.164, p = 0.403.
+
+The missing variable is **foul type** — what kind of contact generates the free throws. Players whose FTAs come from genuine rim-finishing contact (LeBron driving through defenders) likely maintain or increase FTAs under playoff physicality. Players whose FTAs come from perimeter foul-drawing (rip-throughs, pump-fake-and-jump-into, marginal whistle-seeking) likely lose FTAs as refs tighten and defenders adjust. This distinction is not measurable from box scores or play-by-play — it requires video classification of shooting fouls. See `documents/development/foul_type_video_plan.md`.
 
 ### How we got here (resolved background)
 
-The project began by asking *how* stars fail in the playoffs — do they **contract** (stop shooting) or **force** (keep shooting inefficiently)? That contractor/forcer mechanism taxonomy (Screen E) answered its question and is now settled. The key finding was negative: mechanism and frequency are independent. Butler contracts like Harden but barely floors in the playoffs. Two players can fail the same way at completely different rates. So *how* a star fails does not tell you *how often* or *when* they will fail. The mechanism split helped us ask the right follow-up question — what determines **when** the failure happens? — but it is not itself the primary axis. A new reader should treat Screen E as resolved context, not an active research question.
+The project began by asking *how* stars fail in the playoffs — do they **contract** (stop shooting) or **force** (keep shooting inefficiently)? The key finding was negative: mechanism and frequency are independent. Butler contracts like Harden but barely floors in the playoffs. The mechanism taxonomy is resolved context, not a primary axis.
 
-### The actual finding: trigger taxonomy (Screen F)
+The trigger taxonomy (Screen F) then asked *when* floor games happen by examining floor rates across opponent quality. This was retired after failing split-sample validation (Phase A, June 14 2026 — 31% concordance across career halves).
 
-Stars' floor games are triggered by different conditions, and the **trigger type** — not the failure mechanism — is what matters for scouting and team-building:
+The architecture prediction model (Phases B/C) asked whether RS scoring architecture predicts PO floor risk. The box-score model (R² = 0.128) and shot-chart model (mode independence range 0.315–0.340, no variance) both failed.
 
-| Trigger | Definition | Players | Scouting implication |
-|---------|-----------|---------|---------------------|
-| **Opponent-independent** | Floors vs weak and strong D alike | Harden, PG, Embiid, Klay | Unpredictable — can't scheme it away |
-| **Scheme-dependent** | Floors only vs elite D | SGA, Westbrook, Trae, Simmons | Gameplan-able — elite D suppresses |
-| **Disengagement** | Floors vs weak D, rises vs strong | Butler, Ray Allen, Giannis, Haliburton | System-dependent — keep engaged |
-| **Bimodal** | Floors vs both weak and strong D | DeRozan, Iverson, Wall, Curry, Luka | Two different triggers |
-| **Standard** | No distinctive pattern | Durant, LeBron, Kobe, CP3, Lillard, **Dirk**, Brunson, Tatum, Jokic, Hamilton | Mild gradient |
-
-### The KAT/Harden framing
-
-The 2025 NBA Finals discourse claims Karl-Anthony Towns "shed the loser label." But KAT didn't change — the Knicks' elite defense hides his floor weaknesses (can't anchor, gets played off the floor) by ensuring he never has to. To a fan, KAT looks like he discovered clutch grit. The data says the system removed the conditions that exposed him.
-
-This is the distinction the trigger taxonomy captures. **Scheme-dependent** triggers (SGA, Simmons) are like KAT — the right system can hide them. **Opponent-independent** triggers (Harden, PG, Embiid) are the opposite — you can't build a KAT-style system solution because there's no identifiable condition to remove. Harden's bad games are a coin flip; no opponent profile predicts them; no roster construction reliably prevents them unless he's your third option or your #1 isn't also underperforming.
-
-**Dirk Nowitzki** tests the "choker to champion" narrative flip directly. Dirk is classified `standard` trigger, `forcer` mechanism, with a playoff floor rate that **drops** from 15% to 7.1% — he has *fewer* bad games in the playoffs, not more. The 2011 championship didn't require Dirk to change. He was never the choker. 2011 was the year the roster was finally good enough to win when Dirk did what Dirk always did.
+The FTA shift analysis (Phase E, June 17 2026) asked why some players lose free throws in the playoffs and others don't, producing the project's strongest finding.
 
 ### Summary of key findings
 
-1. **Mechanism (contraction vs. forcing) is resolved background** — it helped us get here but is not the primary axis. See Screen E section below.
-
-2. **Contraction is a stable career trait** — RS FGA retention predicts PO FGA retention (r = 0.72). But trait stability of mechanism does not predict frequency.
-
-3. **The public "choke" narrative misdiagnoses trigger as psychology** — calling Butler a "playoff riser" and DeRozan a "choker" confuses mechanism with frequency and misses the actual trigger conditions. Calling Dirk a "choker until 2011" misdiagnoses a roster problem as a player problem.
+1. **FTA per-36 shift is the strongest predictor of PO floor-game rate** — r = −0.528, p = 0.002 (career level, n=31). Combined with FGA shift: R² = 0.40.
+2. **FGA and FTA co-collapse in floor games** — r = +0.428, p = 0.016. Foul-dependent scoring fails as a single action.
+3. **RA shift → FTA shift → floor games** — losing restricted area access costs free throws (r = +0.521, p = 0.003), and losing free throws predicts floor games.
+4. **FTA dependency is significant at the game level** — multilevel model (n=3,269 games): β = −0.024, p = 0.019, controlling for opponent quality. It operates as a base-rate risk factor (interaction with opponent quality is null, p = 0.226).
+5. **Contraction is a stable career trait** — RS FGA retention predicts PO FGA retention (r = 0.72). But trait stability of mechanism does not predict frequency.
+6. **The cohort-wide playoff floor effect is explained by opponent quality** — p = 0.83 after adjustment.
+7. **The "playoff whistle" is not universal** — 15/31 increase FTA rate; cohort mean shift −0.05.
+8. **The predictive gap remains open** — FTA shift is moderately stable (split-half r = 0.45) but does not predict future floor rates (H1 → H2: r = −0.16, p = 0.40). The missing variable is foul type.
 
 See [`open_questions.md`](open_questions.md) for resolved research decisions and remaining gaps.
 
@@ -596,23 +599,20 @@ The initial scrape had critical bugs (wrong NBA player IDs mapping Kyrie → Jok
 
 ## Suggested Next Steps
 
-### Priority order (June 2026, revised)
+### Priority order (June 17 2026, revised)
 
-1. **Gap 3: Trigger threshold sensitivity** — Parameterize `classify_trigger()`, run across threshold grid, identify swing players, Bayesian alternative. If taxonomy doesn't survive, other gaps are moot. 1-2 days.
-2. **Gap 1: Split-sample trigger validation** — Split careers in half, re-classify independently, null model. 2-3 days.
-3. **Causal chain — trigger → team outcomes** — Step 0 done (team logs + validation). Next: join to floor games, then test whether trigger type predicts team ORtg among floor games. See [`causal_chain_plan.md`](causal_chain_plan.md).
-4. **Gap 4: Composite floor-game metric** — PCA on Game Score + FTA/FGA engagement + usage drop + +/−; series-level floor detection. 3-5 days.
-5. **Gap 2: Causal identification** — Game-level opponent data, Pass 2 temporal ordering, team-season FE. 5-10 days.
-6. **Out-of-sample validation** — Train trigger profile on career first half, test on second half
-7. **Pass 2 temporal ordering** — Possession-level data can establish whether contraction *follows* a personal cold start (Event A) or *follows* team-wide offensive collapse. This is the strongest available mitigation for the reverse causality threat in the causal chain.
+1. **Foul-type video classification** — The missing variable that could close the predictive loop. Classify shooting fouls by type (rim-finishing contact, perimeter foul-drawing, rip-through, transition) using NBA.com video review data. If foul type predicts FTA shift direction, the full chain becomes: RS foul-type composition → predicted FTA shift → predicted PO floor risk. See [`foul_type_video_plan.md`](foul_type_video_plan.md).
+2. **Causal chain — FTA shift → team outcomes** — Reframe the causal chain around continuous FTA shift (not trigger type or mechanism). Among floor games, does the FTA shift predict team ORtg after controlling for individual performance? Infrastructure exists (`join_causal_table.py`); regressions need re-specification.
+3. **Expand cohort for FTA shift stability** — The split-half stability test (r = 0.45) uses 28 players. Adding 10–15 more stars with sufficient PO samples could tighten the CI and test whether the trait is truly stable enough for projection.
+4. **Game-level FTA shift model** — The current game-level multilevel model uses season-level RS FTA dependency as the cross-level predictor. A within-season model using per-game FTA shift (game-level PO FTA/36 minus RS season FTA/36) could test whether the FTA shift signal is game-specific or player-specific.
 
 ### If writing up now
 
 The honest paper is not "Harden chokes in the clutch." It is:
 
-**"The critical differentiator among star players in the playoffs is not what happens when they have a bad game but why bad games happen — floor-game trigger type (opponent-independent, scheme-dependent, or disengagement-dependent) determines whether playoff risk is unpredictable, gameplan-able, or system-manageable."** Documenting a novel trigger taxonomy, showing that mechanism and frequency are independent dimensions, and testing whether trigger type predicts team outcomes.
+**"Playoff floor-game risk is predicted by what happens to a player's free throw attempts, not by psychology or clutch pressure. Players whose FTA per 36 drops from regular season to playoffs have significantly more floor games (r = −0.53, p = 0.002), driven by a single-action collapse: foul-dependent scoring (drive + contact + whistle) fails as a unit when rim access is denied. The FTA shift is moderately stable across career halves (r = 0.45) but not stable enough to predict future floor rates, because the missing variable — what *type* of contact generates the free throws — is not observable in box-score data."**
 
-If the causal chain shows no trigger effect, the paper is still publishable on the taxonomy alone, but the contribution is descriptive rather than actionable for scouting.
+The descriptive contributions are publishable: FTA-FGA co-collapse as a mechanism, the "playoff whistle" debunking, contraction stability, and four honestly reported negative predictive results (trigger taxonomy, architecture model, shot-chart independence, RS opponent-gradient). The predictive claim requires foul-type classification to close.
 
 ---
 
@@ -620,7 +620,7 @@ If the causal chain shows no trigger effect, the paper is still publishable on t
 
 | File | Description |
 |------|-------------|
-| `data/processed/analysis_table.csv` | Full game-level table (~20k rows) |
+| `data/processed/analysis_table.csv` | Full game-level table (~31k rows) |
 | `data/processed/screen_a_results.csv` | Variance shift per player |
 | `data/processed/screen_a_adj_results.csv` | Opponent-adjusted floor rates |
 | `data/processed/retention_baselines.csv` | RS vs PO FGA/FTA/min retention |
@@ -629,16 +629,23 @@ If the causal chain shows no trigger effect, the paper is still publishable on t
 | `data/processed/screen_d_results.csv` | Leverage concentration |
 | `data/processed/screen_e_results.csv` | Floor-game mechanism profiles |
 | `data/processed/event_frequency_estimates.csv` | Pass 2 Event A/B projections |
+| `data/processed/architecture_career_table.csv` | Career-average architecture + PO floor rate |
+| `data/processed/architecture_season_table.csv` | Season-level architecture + PO outcomes |
+| `data/processed/shot_chart_architecture.csv` | Per-player-season shot-chart features |
+| `data/processed/fta_collapse_profiles.csv` | FGA/FTA co-collapse profiles per player |
+| `data/processed/rq_game_level.csv` | Game-level Resilience Quotient |
+| `output/figures/fta_dependency_deepdive.{png,svg}` | FTA shift analysis figures (4-panel) |
 | `documents/development/DEVELOPER.md` | Onboarding — setup, pipeline, what's done vs. open |
 | `documents/development/pass1_plan.md` | Original research design |
 | `documents/development/open_questions.md` | Resolved decisions + remaining gaps |
 | `documents/development/causal_chain_plan.md` | Causal chain Steps 0–4 (Step 0 complete) |
+| `documents/development/foul_type_video_plan.md` | Video-based foul-type classification plan |
 
 ---
 
 ## One-Paragraph Summary
 
-James Harden's raw playoff floor-game rate rises from 15% to 22% (χ² *p* = 0.067), but after opponent adjustment the cohort-wide playoff effect disappears (*p* = 0.83) while Harden retains a +7pp adjusted increase with opponent-independent floors (33% vs weak defenses, 16% vs strong). His contraction is not playoff-specific — FGA retention is 75% RS and 74% PO — but it is a stable career trait (r = 0.72 across the cohort) that distinguishes him from forcers like Durant (97% FGA retention in PO floor games). Paul George shares the opponent-independent contraction pattern but via rim abandonment (FTA retention 54%→25% in playoffs); SGA shares the contraction symptom but via scheme dependence (0% floor rate vs strong defenses). Floor games do not compound late in series (H2 rejected) or cluster in elimination games (Harden: 15% elim vs 23% non-elim). The public "choke" narrative misdiagnoses a structural failure mode — contraction under adversity — as clutch psychology.
+The strongest predictor of playoff floor-game risk is what happens to a player's free throw attempts: players whose FTA per 36 drops from regular season to playoffs have significantly more floor games (r = −0.53, p = 0.002, n = 31). The mechanism is a single-action collapse — FGA and FTA co-collapse (r = +0.43, p = 0.016) because foul-dependent scoring (drive + contact + whistle) fails as a unit when rim access is denied (RA shift → FTA shift: r = +0.52, p = 0.003). This is NOT the "playoff whistle" narrative — the cohort-wide FTA shift is zero (15/31 increase), but individual variation is large and moderately stable across career halves (split-half r = 0.45, sign concordance 79%): Harden consistently loses 1.1 FTA/36, LeBron consistently gains 0.4, Dirk gains 1.7. The FTA shift is significant at the game level controlling for opponent quality (multilevel β = −0.024, p = 0.019) and operates as a base-rate risk factor (interaction null, p = 0.226). However, the trait is not stable enough to predict future floor rates (H1 → H2 floor rate: r = −0.16, p = 0.40), because the missing variable — what *type* of contact generates the free throws — is not in the data. The predictive question requires foul-type video classification to determine whether the fouls a player draws are from rim-finishing contact (which increases under playoff physicality) or perimeter foul-seeking (which evaporates).
 
 ---
 
@@ -704,3 +711,297 @@ Key variables: FGA retention (stable trait), FTA dependency, scoring-mode concen
 | `data/processed/trigger_bayesian.csv` | Bayesian posterior probabilities |
 | `data/processed/trigger_bootstrap_cis.csv` | Bootstrap 95% CIs per tercile |
 | `data/processed/trigger_split_sample.csv` | Split-sample concordance table |
+
+---
+
+## Phase B: Box-Score Architecture Model (June 14, 2026) — FAILED (R² = 0.128)
+
+### Summary
+
+The box-score architecture model tested whether RS scoring architecture (FGA retention, FTA dependency, HHI scoring concentration, % points from FT) predicts PO floor-game rate. Career-level R² = 0.128. Below the pre-registered 0.25 bar. Player-season pooled R² = 0.010. The model does not clear any reasonable threshold for predictive contribution.
+
+### Results
+
+**Career-level bivariate correlations with PO floor rate (n=31):**
+
+| Variable | r | p | Interpretation |
+|---|---|---|---|
+| RS FTA/FGA ratio | **+0.303** | **0.098** | Foul-dependent scorers floor more — only marginal signal |
+| % points from FT | **+0.313** | **0.086** | Same signal via different measure |
+| RS floor rate | -0.258 | 0.162 | Higher RS floor rate weakly predicts lower PO floor rate (regression to mean) |
+| HHI scoring (3-mode) | -0.182 | 0.328 | Null — concentration doesn't predict vulnerability |
+| RS FGA retention | -0.056 | 0.763 | Null — the stable trait does NOT predict frequency |
+| RS FTA retention | -0.003 | 0.988 | Null |
+
+**Career-level multivariate OLS (n=31):** R² = 0.128, Adj R² = -0.006. No individual predictor significant at p < 0.05.
+
+**Player-season pooled (n=225):** R² = 0.010. Architecture variables have no within-cohort predictive power at the season level.
+
+### Why box-score HHI fails
+
+Harden has the **lowest** HHI in the cohort (0.341 — most diversified) yet the **5th-highest** PO floor rate (21.5%). The 3-mode decomposition (2PM / 3PM / FT point shares) treats Harden as a balanced scorer across three modes. But two of his modes — rim attacks (2PM from drives) and foul drawing (FT from the same drives) — are mechanically the same action. When the whistle tightens, both collapse simultaneously. A 3-mode scorer with 2 correlated modes behaves like a 1-mode scorer under stress.
+
+The HHI measures *spread*, not *independence*. The thesis requires per-shot zone data to decompose FGA into independent scoring modes and measure whether they collapse together or separately.
+
+### What survives
+
+1. **FTA dependency is the only architecture signal.** r = +0.30, p = 0.098 — marginal but directionally consistent with the Harden thesis. The higher the foul-drawing rate relative to FGA, the more vulnerable the player is to playoff floor games.
+2. **FGA retention is a stable trait that does NOT predict frequency.** This is itself a finding: *how* a player contracts (vol_share) is consistent RS-to-PO (r = 0.72), but it does not predict *how often* floor games occur. Mechanism and frequency remain independent at the architecture level.
+
+### Next step: shot chart data
+
+The `shotchartdetail` API endpoint provides per-shot `ACTION_TYPE` and `SHOT_ZONE_BASIC`, enabling a 5-mode HHI (RA, Paint, Mid, 3PT, FT) and mode-independence metrics. See shot chart integration plan for implementation spec.
+
+### Scripts
+
+| Script | Phase B component |
+|--------|-------------------|
+| `src/architecture_model.py` | Full pipeline: season architecture, PO outcomes, career + season regressions, figures |
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `data/processed/architecture_career_table.csv` | Career-average architecture + PO floor rate per player |
+| `data/processed/architecture_season_table.csv` | Season-level architecture + PO outcomes (n=225) |
+| `output/figures/architecture_career_scatter.{png,svg}` | FTA dependency and HHI vs PO floor rate |
+| `output/figures/architecture_correlation_heatmap.{png,svg}` | Variable correlation matrix |
+
+---
+
+## Phase C: Shot-Chart Architecture Model (June 15, 2026) — FAILED (mode_independence_score has no discriminative power)
+
+### Summary
+
+The shot-chart architecture model extended the box-score model with per-shot zone data from `shotchartdetail`. The key new variable — `mode_independence_score` (average absolute pairwise correlation of per-game mode shares across 4 FGA zones) — was designed to capture whether a player's scoring modes collapse together or independently. The metric has **no discriminative power**: the range across 31 players is 0.315–0.340. All players appear equally mode-independent. The combined box-score + shot-chart model does not meaningfully improve on the box-score alone (R² = 0.128).
+
+### Why mode_independence_score failed
+
+The metric computes average absolute pairwise Pearson correlation of per-game zone shares (share_ra, share_paint, share_mid, share_three) across all RS games for a player-season. The problem is structural: per-game zone shares are compositional (they sum to 1.0 for FGA zones), so when one zone share goes up, others mechanically go down. This induces negative correlations between all zone pairs, compressing the average absolute correlation into a narrow band. The metric cannot distinguish Harden's correlated rim+FT collapse from Durant's balanced absorption because the compositional constraint dominates the signal.
+
+### Mode-collapse profiles: the descriptive salvage
+
+While the predictive model failed, the per-mode floor-game collapse profiles (computed in `shot_chart_features.py`) are the most diagnostically interesting output:
+
+| Player | RA collapse | 3PT collapse | FT collapse | Interpretation |
+|--------|------------|-------------|------------|---------------|
+| **James Harden** | −0.024 | **−0.109** | **+0.113** | 3PT share drops 11pp; FT share *rises* 11pp — FT can't compensate for 3PT failure |
+| **Kevin Durant** | +0.001 | −0.026 | +0.025 | Balanced minor shifts — no mode dominates, no catastrophic collapse |
+| **Joel Embiid** | **−0.057** | −0.012 | **+0.064** | Rim attacks dry up; FT share rises as compensation fails |
+| **Stephen Curry** | +0.051 | **−0.078** | +0.005 | 3PT collapse with mild RA absorption — limited secondary mode |
+| **Klay Thompson** | +0.054 | **−0.137** | +0.029 | Pure 3PT shooter — when threes fail, nothing absorbs |
+| **Paul George** | **+0.066** | −0.042 | −0.016 | RA share *increases* in floor games — he drives more but inefficiently |
+| **Trae Young** | +0.026 | **−0.122** | +0.047 | 3PT collapse with FT absorption attempt |
+
+**Key finding:** FT share *increases* in floor games for foul-dependent players (Harden +11pp, Embiid +6pp). This contradicts the "playoff whistle stops their fouls" narrative. The FT mode doesn't collapse — it *can't compensate*. When the 3PT mode fails, these players lean on foul drawing, but the fouls alone cannot carry the offense.
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `data/processed/shot_chart_architecture.csv` | Per-player-season shot-chart features |
+| `data/processed/shot_chart_career_table.csv` | Career averages + PO floor rate |
+| `data/processed/architecture_combined_career_table.csv` | Combined box+shot-chart career table |
+
+---
+
+## Phase D: RS Opponent-Independence → PO Floor Rate (June 15, 2026) — MARGINAL, FRAGILE
+
+### Question
+
+Do players who floor equally against strong and weak opponents during the regular season have a higher frequency of floor games in the playoffs than those whose floor games are opponent-dependent?
+
+This reframes the retired trigger taxonomy (Screen F) as a predictive question: the RS opponent-gradient is an observable regular-season statistic that could, in principle, predict playoff risk.
+
+### Method
+
+For each player, compute the RS opponent-gradient: `floor_rate_vs_weak_D − floor_rate_vs_strong_D` using league-wide opponent DEF_RATING terciles. Absolute gradient measures opponent-dependence (high = floors only against certain opponent types; low = floors regardless of opponent). Then test whether RS |gradient| predicts PO floor-game rate at the career level (n=30).
+
+### Results
+
+**Career-level correlation (n=30):**
+
+| Test | r | p | Direction |
+|------|---|---|-----------|
+| RS |gradient| → PO floor rate | **−0.315** | **0.090** | Opponent-independent RS floorers have marginally higher PO floor rates |
+| RS gradient (signed) → PO floor rate | −0.201 | 0.287 | No directional signal |
+
+**Bootstrap (10,000 resamples):** Mean r = −0.302, 95% CI = [−0.607, +0.090]. The CI crosses zero.
+
+**Binary split (flat |gradient| < 0.10 vs steep):**
+
+| Group | n | Mean PO floor rate |
+|-------|---|--------------------|
+| Flat RS (|grad| < 0.10) | 8 | 15.6% |
+| Steep RS (|grad| ≥ 0.10) | 22 | 14.9% |
+| Difference | — | +0.7pp, p = 0.80 |
+
+**Sensitivity (leave-one/two-out):**
+
+| Exclusion | r | p |
+|-----------|---|---|
+| Full sample (n=30) | −0.315 | 0.090 |
+| Without Jokic + Giannis (n=28) | −0.120 | 0.544 |
+| Without Embiid (n=29) | −0.407 | 0.028 |
+| Without Ray Allen (n=29) | −0.304 | 0.109 |
+
+**Player-season level (n=97):** Simpson's paradox — correlation *flips positive* (r = +0.222, p = 0.029) when aggregated at season level instead of career level. With player FE, the effect disappears (p = 0.15). Season-level PO floor rates are estimated from 3–15 games and are too noisy to be reliable.
+
+### Interpretation
+
+The direction is consistent with the hypothesis: players whose RS floor games are opponent-independent (flat gradient across weak/strong defenses) have marginally higher PO floor rates. But the evidence is weak and fragile:
+
+1. The continuous correlation (r = −0.315, p = 0.09) is marginal.
+2. The binary split shows essentially no difference (0.7pp).
+3. The signal is driven by two leverage points: Jokic (huge coaster gradient, 4% PO floor) and Giannis (huge coaster gradient, 10% PO floor). Removing them kills the result.
+4. The bootstrap 95% CI includes zero.
+5. The season-level reversal (Simpson's paradox) suggests the career-level aggregation is doing heavy lifting and may be overfitting to the specific composition of this cohort.
+
+**The honest answer to the question "do RS opponent-independent floorers have higher PO floor rates?" is: directionally yes, but we cannot confirm it with this sample. The pattern is suggestive and theory-consistent but underpowered and leverage-dependent.**
+
+### Per-player RS opponent gradient table
+
+| Player | RS floor (weak D) | RS floor (strong D) | RS gradient | |RS gradient| | PO floor rate |
+|--------|-------------------|---------------------|-------------|-------------|---------------|
+| Trae Young | 14.3% | 12.8% | +0.015 | 0.015 | 25.9% |
+| Klay Thompson | 17.3% | 14.9% | +0.024 | 0.024 | 15.2% |
+| John Wall | 18.5% | 22.1% | −0.036 | 0.036 | 10.8% |
+| LeBron James | 19.1% | 13.9% | +0.051 | 0.051 | 11.6% |
+| Allen Iverson | 15.3% | 21.4% | −0.061 | 0.061 | 16.9% |
+| Kevin Durant | 18.1% | 11.8% | +0.063 | 0.063 | 12.9% |
+| Kobe Bryant | 15.8% | 7.7% | +0.081 | 0.081 | 12.7% |
+| Russell Westbrook | 12.1% | 21.4% | −0.093 | 0.093 | 18.5% |
+| Ray Allen | 15.7% | 4.5% | +0.112 | 0.112 | 28.7% |
+| Stephen Curry | 20.7% | 9.1% | +0.116 | 0.116 | 8.4% |
+| Kyrie Irving | 21.6% | 8.6% | +0.130 | 0.130 | 18.5% |
+| **James Harden** | **20.9%** | **7.8%** | **+0.131** | **0.131** | **21.5%** |
+| Paul George | 22.6% | 9.2% | +0.134 | 0.134 | 15.2% |
+| Dirk Nowitzki | 13.5% | 26.9% | −0.135 | 0.135 | 6.9% |
+| Chris Paul | 10.2% | 24.2% | −0.140 | 0.140 | 17.4% |
+| Damian Lillard | 23.3% | 8.9% | +0.143 | 0.143 | 23.5% |
+| Ben Simmons | 5.3% | 21.5% | −0.162 | 0.162 | 17.9% |
+| DeMar DeRozan | 24.9% | 7.2% | +0.176 | 0.176 | 15.9% |
+| Tobias Harris | 26.3% | 8.4% | +0.179 | 0.179 | 11.1% |
+| Richard Hamilton | 19.5% | 0.0% | +0.195 | 0.195 | 10.0% |
+| Jalen Brunson | 29.4% | 9.4% | +0.200 | 0.200 | 4.7% |
+| Shai Gilgeous-Alexander | 29.4% | 9.0% | +0.204 | 0.204 | 14.8% |
+| Luka Doncic | 33.3% | 12.4% | +0.210 | 0.210 | 14.5% |
+| De'Aaron Fox | 30.6% | 8.1% | +0.225 | 0.225 | 17.9% |
+| Donovan Mitchell | 33.3% | 10.2% | +0.231 | 0.231 | 16.0% |
+| Joel Embiid | 33.3% | 10.0% | +0.234 | 0.234 | 27.3% |
+| Jimmy Butler | 29.0% | 4.0% | +0.250 | 0.250 | 10.8% |
+| Jayson Tatum | 35.9% | 8.4% | +0.275 | 0.275 | 11.8% |
+| Giannis Antetokounmpo | 37.7% | 1.7% | +0.361 | 0.361 | 10.7% |
+| Nikola Jokic | 44.2% | 4.5% | +0.398 | 0.398 | 4.0% |
+
+Positive gradient = coasts vs weak D (floors more against weak defenses). Negative gradient = scheme-suppressed (floors more against strong defenses).
+
+---
+
+## Phase E: FTA Shift Deep-Dive (June 17, 2026) — PROJECT'S STRONGEST FINDING
+
+### Summary
+
+The FTA per-36 shift (PO minus RS) is the strongest predictor of playoff floor-game rate the project has found. r = −0.528, p = 0.002, bootstrap 95% CI [−0.722, −0.279] (excludes zero). Players who lose free throw attempts in the playoffs have significantly more floor games. Combined with FGA shift in a two-predictor model: R² = 0.396.
+
+### How this finding emerged
+
+The starting question was whether FTA dependency (RS FTA/FGA ratio) could be made into an airtight risk factor. The deep-dive revealed:
+
+1. **FTA dependency itself is marginal at career level** — r = +0.303, p = 0.098 (season-averaged); r = +0.232, p = 0.209 (career-summed). Bootstrap CI crosses zero. Embiid is a leverage point (removing him drops r from +0.30 to +0.11).
+2. **FTA dependency IS significant at the game level** — multilevel model (n = 3,269 PO games, 31 players): β = −0.024, p = 0.019. The game-level model uses 100x the observations and handles the multilevel structure properly.
+3. **But the real signal is the FTA shift** — not how many FTAs you attempt, but whether that number goes up or down in the playoffs. This variable (r = −0.528) is 2x stronger than RS FTA dependency (r = +0.303) and passes every robustness check.
+
+### Results
+
+**Career-level: FTA per-36 shift → PO floor rate (n=31)**
+
+| Test | r | p |
+|------|---|---|
+| Pearson | −0.528 | 0.002 |
+| Spearman | −0.473 | 0.007 |
+| Bootstrap 95% CI | [−0.722, −0.279] | Excludes zero |
+| Leave-one-out max influence | 0.051 (Brunson) | No single player dominates |
+| Controlling for RS FTA dependency | β = −0.040, p = 0.005 | Survives; RS FTA dependency goes null (p = 0.53) |
+
+**Combined model (FTA shift + FGA shift → PO floor rate):**
+
+| Variable | β | p |
+|----------|---|---|
+| FTA per-36 shift | −0.036 | 0.005 |
+| FGA per-36 shift | −0.015 | 0.027 |
+| R² = 0.396 | | |
+
+**FTA shift by player (sorted, PO minus RS FTA per 36):**
+
+| Player | FTA shift | PO floor rate |
+|--------|-----------|---------------|
+| De'Aaron Fox | −1.8 | 17.9% |
+| Joel Embiid | −1.2 | 27.3% |
+| Luka Doncic | −1.1 | 14.5% |
+| James Harden | −1.1 | 21.5% |
+| Jimmy Butler | −0.8 | 10.8% |
+| Allen Iverson | −0.7 | 16.9% |
+| ... | ... | ... |
+| LeBron James | +0.4 | 11.6% |
+| Jalen Brunson | +1.3 | 4.7% |
+| Dirk Nowitzki | +1.7 | 6.9% |
+
+### Mechanism: single-action collapse
+
+**FGA-FTA co-collapse:** r = +0.428, p = 0.016. When a player's FGA drops in floor games, FTA drops too. This supports the thesis that for foul-dependent scorers, driving and foul-drawing are the same action. When the rim is walled off, both the shot attempt and the foul disappear simultaneously.
+
+**RA shift → FTA shift:** r = +0.521, p = 0.003. Players who lose restricted area shot share in the playoffs also lose free throw attempts. Losing rim access costs FTAs.
+
+**Drive shift → FTA shift:** r = +0.518, p = 0.003. Same story via action type: players who attempt fewer driving actions in PO also lose FTAs.
+
+**FTA dependency → FTA collapse magnitude:** r = −0.347, p = 0.056. Borderline — more FTA-dependent players have larger FTA drops in floor games, but does not clear p < 0.05.
+
+### Multilevel model: FTA dependency at game level
+
+Game-level linear probability model (n = 3,269 PO games, 31 players), is_floor as DV:
+
+| Model | FTA dep β | p | Opp quality β | p | Interaction β | p |
+|-------|-----------|---|---------------|---|---------------|---|
+| Opponent only | — | — | −0.023 | 0.001 | — | — |
+| Main effects | −0.024 | 0.019 | −0.026 | 0.001 | — | — |
+| Interaction | −0.024 | 0.025 | −0.025 | 0.001 | −0.009 | 0.226 |
+
+ICC (player) = 0.022 — only 2% of floor-game variance is between-player. Floor games are overwhelmingly a game-level phenomenon, not a player-level trait.
+
+The interaction is null: FTA dependency is a **base-rate risk factor**, not modulated by opponent quality. FTA-dependent players don't floor more specifically against elite defenses — they floor more in general.
+
+### Split-half stability: is FTA shift a career trait?
+
+**Split-half correlation (n=28 players with 4+ PO seasons):** r = +0.451, p = 0.016. **Sign concordance: 79% (22/28 same direction in both halves).**
+
+Consistently negative (lose FTAs): Harden (−0.30, −1.79), Embiid (−0.21, −2.49), Butler (−1.18, −1.14), Iverson (−1.01, −1.57), DeRozan (−1.42, −1.29).
+
+Consistently positive (gain FTAs): LeBron (+0.22, +0.21), Dirk (+0.52, +1.12), Paul George (+0.98, +0.44), Brunson (+0.96, +0.85), Mitchell (+1.18, +0.34).
+
+Sign flippers (6/28, 21%): Giannis (+0.05, −1.88), Tatum (+1.60, −0.57), Durant (−0.41, +0.65), Kyrie (+0.27, −0.59), Simmons (−0.67, +0.52), Westbrook (+0.09, −0.22).
+
+### The predictive test: FAILS
+
+**H1 FTA shift → H2 PO floor rate:** r = −0.164, p = 0.403. Bootstrap CI [−0.434, +0.125] (crosses zero).
+
+The trait is stable enough to replicate *itself* across career halves (r = 0.45), but not stable enough to predict future floor-game rates (r = −0.16). The FTA shift explains floor games within the same time period (retrospectively) but does not carry predictive power across time.
+
+### Why the predictive test fails — the missing variable
+
+RS FTA dependency → FTA shift is only r = −0.254, p = 0.168. Being FTA-dependent in the regular season does NOT reliably predict losing FTAs in the playoffs. Butler (0.538 RS FTA/FGA) loses 0.8 FTA/36. Giannis (0.525) gains 0.3. The RS RA share → RA shift is null (r = 0.03, p = 0.86). Knowing where a player shoots in the RS doesn't predict whether he'll lose rim access in playoffs.
+
+The missing variable is **foul type**: what kind of contact action generates the free throws. The hypothesis is that players whose FTAs come from rim-finishing contact (LeBron, Giannis) maintain or increase FTAs under playoff physicality, while players whose FTAs come from perimeter foul-drawing (Harden, Embiid) lose FTAs as refs tighten and defenders adjust. This is not measurable from box scores or PBP data — it requires video classification. See [`foul_type_video_plan.md`](foul_type_video_plan.md).
+
+### Scripts
+
+| Script | Component |
+|--------|-----------|
+| `src/fta_dependency_deepdive.py` | Full pipeline: threshold analysis, mode-collapse bridge, multilevel model, robustness |
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `data/processed/fta_collapse_profiles.csv` | Per-player FGA/FTA collapse in PO floor games |
+| `output/figures/fta_dependency_deepdive.{png,svg}` | 4-panel figure: scatter + bootstrap + co-collapse + FTA share |

@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive
 
 venv:
 	python3 -m venv .venv
@@ -45,6 +45,35 @@ event-frequency:
 
 trigger-sensitivity:
 	$(PYTHON) src/trigger_sensitivity.py
+
+join-causal:
+	$(PYTHON) src/join_causal_table.py
+
+mechanism-descriptives: join-causal
+	$(PYTHON) src/mechanism_descriptives.py
+
+mechanism-models: join-causal
+	$(PYTHON) src/mechanism_models.py
+
+causal-chain: mechanism-descriptives mechanism-models
+
+architecture-model:
+	$(PYTHON) src/architecture_model.py
+
+scrape-shot-charts:
+	$(PYTHON) src/scrape_shot_charts.py --resume
+
+validate-shot-charts:
+	$(PYTHON) src/validate_shot_charts.py
+
+shot-chart-features:
+	$(PYTHON) src/shot_chart_features.py
+
+rq-model:
+	$(PYTHON) src/rq_multilevel_model.py
+
+fta-deepdive:
+	$(PYTHON) src/fta_dependency_deepdive.py
 
 screen-b:
 	$(PYTHON) src/screen_b.py
