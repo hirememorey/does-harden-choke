@@ -191,7 +191,9 @@ def main():
     clips = build_manifest(args.player, args.season, args.games, args.season_type)
 
     slug = config.player_slug(args.player)
-    out_path = config.PROCESSED_DIR / f"foul_type_manifest_{slug}.json"
+    # Separate manifest files for RS vs PO to avoid overwriting
+    season_suffix = "_po" if args.season_type == "Playoffs" else ""
+    out_path = config.PROCESSED_DIR / f"foul_type_manifest_{slug}{season_suffix}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     manifest = {

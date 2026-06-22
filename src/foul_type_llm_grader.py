@@ -1,12 +1,17 @@
 """Foul-Type Video Grader using Multimodal LLMs.
 
 Grades the TIMING axis (BEFORE, DURING, AFTER) of shooting fouls from video clips.
-Supports OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet), and Google (Gemini 1.5).
+Supports Google (Gemini — recommended, native video), OpenAI (GPT-5.4 mini), and Anthropic (Claude Sonnet 4.6).
 
-Usage:
-    python src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-1.5-flash"
-    python src/foul_type_llm_grader.py --player "James Harden" --provider "openai" --model "gpt-4o"
-    python src/foul_type_llm_grader.py --player "James Harden" --provider "anthropic" --model "claude-3-5-sonnet-latest"
+Recommended usage (Gemini — native video understanding, no frame extraction):
+    python src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash"
+
+Validate against manual ground truth first:
+    python src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash" --validate-only
+
+Alternative providers (frame-based, less temporal precision):
+    python src/foul_type_llm_grader.py --player "James Harden" --provider "openai" --model "gpt-5.4-mini"
+    python src/foul_type_llm_grader.py --player "James Harden" --provider "anthropic" --model "claude-sonnet-4-6"
 """
 
 from __future__ import annotations
@@ -35,28 +40,23 @@ import config
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert NBA officiating analyst. Your task is to analyze a short video clip (or a chronological sequence of frames) of a shooting foul and determine the exact TIMING of the first illegal contact relative to the shooter's shot motion.
+SYSTEM_PROMPT = """You are an expert NBA officiating analyst. Your task is to watch a short video clip (or a chronological sequence of frames) of a shooting foul and determine WHEN the first illegal contact occurs relative to the shooter's upward shooting motion.
 
-Definitions of Contact Timing:
-1. BEFORE: The first illegal contact occurs BEFORE the shooting motion starts (during the dribble, the gather, the start of the drive, or a rip-through). This is "reach-in" territory.
-   - Visual cues: The shooter is still gathering the ball, holding it low, or driving. Their arms have not started the upward motion to release the shot.
-   - Examples: Defender reaches in and hits the arm during gather; rip-through contact on the perimeter; arm hooks during step-through before the upward release.
+Focus ONLY on timing — when the contact happens relative to the shot release. Do not judge whether the call was correct, how hard the contact was, or what type of foul it was.
 
-2. DURING: The first illegal contact occurs DURING the upward shooting motion, before the ball is released.
-   - Visual cues: The shooter's arms are moving upward in the shot release motion. The contact happens to their arm, hand, or body during this upward lift.
-   - Examples: Defender slaps the arm during the release; defender bumps the body mid-air.
+BEFORE: Contact occurs while the shooter's arms are still LOW — gathering the ball, dribbling, bringing the ball up, or in a rip-through motion. The upward shooting motion has NOT started yet. The shooter's arms have not begun rising toward the release point.
 
-3. AFTER: The first illegal contact occurs AFTER the ball has left the shooter's hand.
-   - Visual cues: The ball is already in the air, flying toward the hoop. The contact occurs during the landing phase or on the follow-through.
-   - Examples: Defender lands in the shooter's landing space; defender hits the shooter's hand/arm after release.
+DURING: Contact occurs while the shooter's arms are RISING in the shooting motion. The ball has not yet left the shooter's hands. The shooter is in the act of shooting — arms moving upward toward the release.
 
-4. UNKNOWN: The video angle makes it impossible to determine, or the contact is too ambiguous.
+AFTER: Contact occurs AFTER the ball has left the shooter's hands. The ball is already in the air. Contact happens on the follow-through, landing, or after release.
 
-Format your output as a clean JSON object:
+UNKNOWN: The camera angle makes it impossible to see when contact occurred, or no clear contact is visible.
+
+Return a JSON object:
 {
   "timing": "BEFORE" | "DURING" | "AFTER" | "UNKNOWN",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
-  "reasoning": "A concise one-sentence description of the physical contact and its timing relative to the shot motion."
+  "reasoning": "One sentence: where were the shooter's arms when contact occurred?"
 }"""
 
 
@@ -126,14 +126,15 @@ class LLMGrader(ABC):
 
 
 class OpenAIGrader(LLMGrader):
-    """Grader using OpenAI's chat completions API (GPT-4o/GPT-4o-mini)."""
+    """Grader using OpenAI's chat completions API (GPT-5.4-mini / GPT-5.4)."""
 
     def grade_clip(self, video_path: str, description: str) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Extract 1 frame per second
-            frames = extract_frames_with_ffmpeg(video_path, temp_dir, fps=1.5)
+            # Extract at 3fps to capture the ~0.2s gather-to-release transition; cap at 15 frames
+            frames = extract_frames_with_ffmpeg(video_path, temp_dir, fps=3.0)
             if not frames:
                 return {"timing": "UNKNOWN", "confidence": "LOW", "reasoning": "Could not extract frames from video."}
+            frames = frames[:15]
             
             # OpenAI prompt structure
             content: List[Dict[str, Any]] = [
@@ -174,12 +175,12 @@ class OpenAIGrader(LLMGrader):
 
 
 class AnthropicGrader(LLMGrader):
-    """Grader using Anthropic's Messages API (Claude 3.5 Sonnet / Claude 3.5 Haiku)."""
+    """Grader using Anthropic's Messages API (Claude Sonnet 4.6 / Claude Haiku 4.5)."""
 
     def grade_clip(self, video_path: str, description: str) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Claude charges more for high-res images, so we limit to 1 fps and max 8 frames
-            frames = extract_frames_with_ffmpeg(video_path, temp_dir, fps=1.0)
+            # 2fps to capture the gather-to-release transition; cap at 10 frames for Claude token limits
+            frames = extract_frames_with_ffmpeg(video_path, temp_dir, fps=2.0)
             if not frames:
                 return {"timing": "UNKNOWN", "confidence": "LOW", "reasoning": "Could not extract frames from video."}
             
@@ -348,12 +349,13 @@ def load_ground_truth() -> Dict[Tuple[str, int], str]:
     return gt
 
 
-def load_manifest(player: str) -> Dict[str, Any]:
-    """Load player manifest json."""
+def load_manifest(player: str, season_type: str = "Regular Season") -> Dict[str, Any]:
+    """Load player manifest json. Checks for PO-specific manifest when season_type is Playoffs."""
     slug = config.player_slug(player)
-    manifest_path = config.PROCESSED_DIR / f"foul_type_manifest_{slug}.json"
+    suffix = "_po" if season_type == "Playoffs" else ""
+    manifest_path = config.PROCESSED_DIR / f"foul_type_manifest_{slug}{suffix}.json"
     if not manifest_path.exists():
-        raise FileNotFoundError(f"Manifest for {player} not found. Run 'make foul-type-scrape-{slug}' first.")
+        raise FileNotFoundError(f"Manifest not found: {manifest_path}\nRun the appropriate foul-type-scrape target first.")
     with open(manifest_path) as f:
         return json.load(f)
 
@@ -366,8 +368,10 @@ def main():
     parser = argparse.ArgumentParser(description="Multimodal LLM video foul timing grader")
     parser.add_argument("--player", required=True, help="Player name (must match config.py)")
     parser.add_argument("--provider", required=True, choices=["openai", "anthropic", "gemini"], help="LLM Provider")
-    parser.add_argument("--model", required=True, help="Model name (e.g. gpt-4o, claude-3-5-sonnet-latest, gemini-1.5-flash)")
+    parser.add_argument("--model", required=True, help="Model name (e.g. gpt-5.4-mini, claude-sonnet-4-6, gemini-2.5-flash)")
+    parser.add_argument("--season-type", default="Regular Season", help="Regular Season or Playoffs (selects the correct manifest)")
     parser.add_argument("--limit", type=int, default=None, help="Limit grading to first N clips")
+    parser.add_argument("--validate-only", action="store_true", help="Only grade clips that have manual ground truth in foul_type_classifications.csv")
     args = parser.parse_args()
 
     # Get API key from env
@@ -392,18 +396,27 @@ def main():
         grader = GeminiGrader(api_key, args.model)
 
     # Load data
-    manifest = load_manifest(args.player)
+    manifest = load_manifest(args.player, args.season_type)
     ground_truth = load_ground_truth()
     
     clips = manifest.get("clips", [])
+
+    if args.validate_only:
+        clips = [c for c in clips if (str(c['game_id']).zfill(10), int(c['event_id'])) in ground_truth]
+        if not clips:
+            print("ERROR: --validate-only specified but no clips match ground truth in foul_type_classifications.csv")
+            sys.exit(1)
+
     if args.limit:
         clips = clips[:args.limit]
+
+    gt_count = sum(1 for c in clips if (str(c['game_id']).zfill(10), int(c['event_id'])) in ground_truth)
 
     print(f"\n" + "="*70)
     print(f"LLM VIDEO GRADER RUN: {args.player}")
     print(f"Provider:  {args.provider.upper()} ({args.model})")
-    print(f"Clips:     {len(clips)} from manifest")
-    print(f"Ground Truth matches: {sum(1 for c in clips if (str(c['game_id']).zfill(10), int(c['event_id'])) in ground_truth)} / {len(clips)}")
+    print(f"Clips:     {len(clips)}{' (validate-only)' if args.validate_only else ' from manifest'}")
+    print(f"Ground Truth matches: {gt_count} / {len(clips)}")
     print("="*70 + "\n")
 
     results = []

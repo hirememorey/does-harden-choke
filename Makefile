@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis foul-type-alpha foul-type-serve
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-harden-po foul-type-scrape-giannis foul-type-scrape-giannis-po foul-type-classify-harden foul-type-classify-giannis foul-type-llm-validate-harden foul-type-llm-harden foul-type-llm-harden-po foul-type-llm-giannis foul-type-llm-giannis-po foul-type-alpha foul-type-serve
 
 venv:
 	python3 -m venv .venv
@@ -104,14 +104,36 @@ smoke-team-logs:
 foul-type-scrape-harden:
 	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "James Harden" --season 2019-20 --games 5
 
+foul-type-scrape-harden-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "James Harden" --season 2019-20 --games 5 --season-type Playoffs
+
 foul-type-scrape-giannis:
 	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "Giannis Antetokounmpo" --season 2023-24 --games 5
+
+foul-type-scrape-giannis-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "Giannis Antetokounmpo" --season 2023-24 --games 5 --season-type Playoffs
 
 foul-type-classify-harden:
 	PYTHONPATH=. $(PYTHON) src/foul_type_classifier.py --manifest data/processed/foul_type_manifest_james_harden.json
 
 foul-type-classify-giannis:
 	PYTHONPATH=. $(PYTHON) src/foul_type_classifier.py --manifest data/processed/foul_type_manifest_giannis_antetokounmpo.json
+
+# LLM grading (Gemini recommended — native video understanding)
+foul-type-llm-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash" --validate-only
+
+foul-type-llm-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash"
+
+foul-type-llm-harden-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash" --season-type Playoffs
+
+foul-type-llm-giannis:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "gemini" --model "gemini-2.5-flash"
+
+foul-type-llm-giannis-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "gemini" --model "gemini-2.5-flash" --season-type Playoffs
 
 foul-type-alpha: foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis
 	@echo ""
