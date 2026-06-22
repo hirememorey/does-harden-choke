@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis foul-type-alpha foul-type-serve
 
 venv:
 	python3 -m venv .venv
@@ -99,6 +99,30 @@ validate-team-logs:
 
 smoke-team-logs:
 	$(PYTHON) -c "from src.scrape_team_logs import collect_team_season_keys, scrape_team_logs; keys=collect_team_season_keys(); scrape_team_logs(keys[keys['season']=='2023-24'].head(5), force=True)"
+
+# Foul-type video classification (Phase E — alpha test)
+foul-type-scrape-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "James Harden" --season 2019-20 --games 5
+
+foul-type-scrape-giannis:
+	PYTHONPATH=. $(PYTHON) src/foul_type_scraper.py --player "Giannis Antetokounmpo" --season 2023-24 --games 5
+
+foul-type-classify-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_classifier.py --manifest data/processed/foul_type_manifest_james_harden.json
+
+foul-type-classify-giannis:
+	PYTHONPATH=. $(PYTHON) src/foul_type_classifier.py --manifest data/processed/foul_type_manifest_giannis_antetokounmpo.json
+
+foul-type-alpha: foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis
+	@echo ""
+	@echo "Alpha test ready. To classify, run:"
+	@echo "  make foul-type-serve"
+	@echo "  Then open http://localhost:8080/foul_type_classifier_james_harden.html"
+	@echo "  and   http://localhost:8080/foul_type_classifier_giannis_antetokounmpo.html"
+
+foul-type-serve:
+	@echo "Serving classifier at http://localhost:8080/"
+	$(PYTHON) -m http.server 8080 --directory output
 
 all: scrape features screen-a screen-b screen-c visualize
 

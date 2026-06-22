@@ -184,17 +184,26 @@ Defined in `config.py`. Groups A/B are legacy — not analytically load-bearing.
 
 The project's path to a predictive contribution. See [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md) for the full spec.
 
-**What to build:**
-1. `src/foul_type_scraper.py` — Filter PBP for shooting fouls, fetch video URLs via `videoeventsasset` API, build clip manifest
-2. `src/foul_type_classifier.py` — Generate self-contained HTML classification tool from manifest
+**Built (June 17, 2026):**
+1. `src/foul_type_scraper.py` — Filters PBP for shooting fouls drawn by a target player, fetches video URLs via `videoeventsasset` API, builds a clip manifest JSON
+2. `src/foul_type_classifier.py` — Generates a self-contained HTML classification tool from a manifest JSON
 
-**Alpha test:** Harden vs Giannis, 5 RS games each (~80 clips, ~25 minutes of classification). If `sought%` is dramatically different → proceed to full sample. If similar → kill the foul-type hypothesis.
+**Alpha test ready:** Harden (20 clips, 5 RS games 2019-20) and Giannis (16 clips, 5 RS games 2023-24). Run `make foul-type-serve` and open the classifier HTML files. If `sought%` is dramatically different between Harden and Giannis → proceed to full sample. If similar → kill the foul-type hypothesis.
+
+**Run the alpha test:**
+```bash
+make foul-type-alpha     # scrape + classify for both players
+make foul-type-serve     # start local server
+# Open http://localhost:8080/foul_type_classifier_james_harden.html
+# Open http://localhost:8080/foul_type_classifier_giannis_antetokounmpo.html
+```
 
 **Key technical notes:**
 - `videoeventsasset` API (NOT `videodetailsasset`, which returns 500) returns direct MP4 URLs
 - Use 960x540 resolution (`murl` field) — good enough for arm/body distinction
-- PBP `actionNumber` maps to `GameEventID` in the video API (verify on multiple games)
+- PBP `actionNumber` (NOT `actionId`) maps to `GameEventID` in the video API (verified across multiple games)
 - Three-axis classification: mechanism (what you see) + discretion (why the whistle blew) + location (where it happened)
+- Classifier HTML must be served via `http://localhost` (not `file://`) because NBA CDN has no CORS headers
 
 ### Decision point: descriptive or predictive?
 

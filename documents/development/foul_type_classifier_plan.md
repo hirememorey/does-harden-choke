@@ -1,6 +1,6 @@
 # Foul-Type Video Classifier — Implementation Plan
 
-**Date:** June 17, 2026
+**Date:** June 17, 2026 (taxonomy revised June 18, 2026)
 **Status:** Ready to build
 **Predecessor:** `foul_type_video_plan.md` (scoping document)
 
@@ -8,42 +8,67 @@
 
 The project's strongest finding is that FTA shift (PO − RS) predicts playoff floor-game rate (r = −0.53, p = 0.002), but FTA shift is retrospective — you can't observe it before the playoffs. The predictive test fails (H1 shift → H2 floor rate: r = −0.16, p = 0.40).
 
-The missing variable is **foul discretion**: whether a player's shooting fouls come from contact that refs always call (through-body finish, arm-on-contest) or contact that refs can choose not to call (arm hooks, rip-throughs, pump-fake jump-intos). This distinction is invisible in PBP data and can only be observed on video.
+The missing variable is **how fouls occur**: whether a player's shooting fouls come from high-force body contact on genuine finishes (hard to avoid, refs always call) versus light arm contact on foul-seeking moves (refs have real discretion). This distinction is invisible in PBP data and can only be observed on video.
 
-This document specifies the tool for a human reviewer to watch video clips of shooting fouls and classify them by type and location.
+This document specifies the tool for a human reviewer to watch video clips of shooting fouls and classify them by mechanism, body part, timing, severity, and location.
 
 ---
 
-## Foul-Type Taxonomy (v2)
+## Foul-Type Taxonomy (v3)
 
-Revised from the original taxonomy in `foul_type_video_plan.md`. The critical change: categories are now organized by **observable contact mechanism** (what you see on video), with a separate **discretion** tag for the judgment axis.
+Revised June 18, 2026 from v2. Key changes:
+- **Discretion removed.** ALWAYS/MARGINAL/SOUGHT asked for a meta-judgment about referee behavior — an opinion on top of an observation, and impossible for an LLM to replicate. Replaced by **Severity**, which is grounded in observable physics (force and trajectory change).
+- **Mechanism decoupled from body part.** Old codes like DRV-BODY and DRV-ARM conflated *how* the foul happened with *where* contact landed. These are now independent axes.
+- **Timing added as drive sub-tag.** Only shown when mechanism is a drive type (DRV-FINISH, DRV-INIT, ARM-HOOK); irrelevant for jumper fouls.
 
-### Contact mechanism (what happened — tag the mechanism you see)
+### Mechanism (how did the foul happen)
 
 | Code | Label | Description | Visual cue |
 |------|-------|-------------|------------|
-| **DRV-BODY** | Drive through-body | Driver goes through defender's torso/chest while attempting to finish at the rim | Defender's body is in the path; driver goes through or over them |
-| **DRV-ARM** | Drive arm hook/lock | Driver hooks, traps, or locks defender's arm during a drive | Driver's arm wraps around or pins defender's arm; often on step-through or gather |
-| **DRV-INIT** | Drive initiated contact | Driver initiates body contact (shoulder, hip) without a clear finishing angle | Driver veers into defender rather than toward the basket |
-| **JMP-CONTEST** | Jumper arm/hand contest | Defender hits shooter's arm or hand on a genuine contest | Defender reaches in and makes contact with shooter's arm during release |
-| **JMP-LANDING** | Jumper landing space | Defender closes out and lands under the shooter's landing zone | Shooter lands on defender's foot or legs; closeout too tight |
-| **JMP-PUMP** | Jumper pump-fake jump-into | Shooter pump-fakes, defender leaves feet, shooter jumps into them | Shooter deliberately initiates upward contact with airborne defender |
-| **JMP-RIP** | Jumper rip-through | Shooter swings ball through defender's extended arm | Defender has arm extended across body; shooter rips ball through the arm |
-| **POST-REACH** | Post reach-in | Defender reaches or hacks on a post-up | Post player backing down; defender reaches across and hits arm/body |
-| **REB** | Putback/rebound foul | Foul during offensive rebound or putback attempt | Scramble under the basket; over-the-back or arm grab |
-| **OFFBALL** | Off-ball foul | Grab, hold, screen foul away from the ball | Player doesn't have the ball; defender grabs/holds on cut or screen |
+| **DRV-FINISH** | Drive finish | Driver going toward the basket; defender is in the path on a genuine finish attempt | Clear finishing angle; driver's trajectory is toward the rim |
+| **DRV-INIT** | Drive initiate | Driver veers into or creates contact with defender without a clear finishing angle | Driver's path deviates toward defender rather than the basket |
+| **ARM-HOOK** | Arm hook / lock | Driver hooks, traps, or locks defender's arm during a drive | Driver's arm wraps around or pins defender's arm; often on step-through or gather |
+| **CONTEST** | Jumper contest | Defender hits shooter's arm or hand while contesting a shot | Defender reaches in during release; genuine contest attempt |
+| **LANDING** | Landing space | Defender closes out and is under the shooter's landing zone | Shooter lands on defender's foot or legs; closeout too tight |
+| **PUMP-JUMP** | Pump-fake jump-in | Shooter pump-fakes, defender leaves feet, shooter jumps into them | Shooter deliberately initiates upward contact with airborne defender |
+| **RIP-THRU** | Rip-through | Shooter swings ball through defender's extended arm | Defender has arm extended across body; shooter rips through it |
+| **POST** | Post contact | Contact on a post-up — defender reaches or hacks | Post player backing down; defender reaches across and makes contact |
+| **PUTBACK** | Putback / rebound | Foul during offensive rebound or putback attempt | Scramble under the basket; over-the-back or arm grab |
+| **OFFBALL** | Off-ball | Grab, hold, or screen foul away from the ball | Player doesn't have the ball; defender grabs/holds on cut or screen |
 | **TAKE** | Take foul | Intentional foul to stop play; no shot attempt | Transition or end-of-clock; wrap-up or push before shot |
 | **AMB** | Ambiguous | Cannot determine from available angle | — |
 
-### Discretion (why the whistle blew — tag your judgment)
+### Body Part (where contact landed)
 
 | Code | Label | Description |
 |------|-------|-------------|
-| **ALWAYS** | Always called | Contact is obvious and unavoidable — genuine contest, body-to-body on finish |
-| **MARGINAL** | Marginally called | Contact is real but could go either way — arm hook where defender reached, lean-in on drive |
-| **SOUGHT** | Offense sought the foul | Player's primary intent was drawing contact, not scoring — pump-fake jump-in, rip-through, arm trap |
+| **HEAD** | Head | Contact to the head or face |
+| **ARM** | Arm / Hand | Contact to the arm, forearm, wrist, or hand |
+| **CHEST** | Chest / Body | Contact to the torso, chest, or midsection |
+| **SHOULDER** | Shoulder | Contact to the shoulder |
+| **LOWER** | Lower Body | Contact to the hip, thigh, leg, or foot |
 
-### Location (where the action happened)
+### Timing (drive sub-tag — only applies when mechanism is DRV-FINISH, DRV-INIT, or ARM-HOOK)
+
+| Code | Label | Description |
+|------|-------|-------------|
+| **BEFORE** | Before shot (gather) | Contact happens during the gather/dribble-gather, before the shooting motion begins |
+| **DURING** | During shot motion | Contact happens simultaneous with the upward shooting motion |
+| **AFTER** | Post-release | Contact happens after the ball leaves the shooter's hand |
+
+### Severity (how forceful was the contact)
+
+Anchor to observable physics — how much did the contact alter the shooter's body trajectory, not whether a ref should have called it.
+
+| Code | Label | Description |
+|------|-------|-------------|
+| **STRONG** | Strong | High-force collision; shooter's body trajectory visibly displaced or altered |
+| **MEDIUM** | Medium | Clear contact with meaningful force; shot motion affected but not body displacement |
+| **MARGINAL** | Marginal | Light or incidental contact; minimal effect on the shooter's motion |
+
+An optional one-sentence note field is available in the classifier for tricky severity calls. These notes are exported to CSV and serve as few-shot examples for future LLM grading.
+
+### Location (where on the court)
 
 | Code | Label | Description |
 |------|-------|-------------|
@@ -151,96 +176,95 @@ data/processed/foul_type_classifications.csv  # Human-generated classifications
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  [Video Player — 960x540]          │  Context Panel  │
-│                                     │  Player: Harden │
-│  Autoplays on load                 │  vs LAC G3      │
-│  Loop until classified              │  Q2 8:12        │
-│                                     │  54-51          │
-│                                     │  S.FOUL         │
+│  [Video Player]                     │  Context Panel  │
+│                                     │  Opponent: LAC  │
+│  Autoplays on load, loops           │  Q2  8:12       │
+│                              [↺ Replay]  S.FOUL       │
 ├─────────────────────────────────────┤                 │
-│  [Classification Panel]            │                 │
+│  [Classification Panel]             │  Progress:      │
+│                                     │  3 / 47         │
+│  Mechanism:                         │  ████░░░░░░     │
+│  [Drive finish]  [Drive initiate]   │                 │
+│  [Arm hook/lock] [Jumper contest]   │  Recent:        │
+│  [Landing space] [Pump-fake jump-in]│  Clip 3         │
+│  [Rip-through]   [Post contact]     │  DRV-FINISH     │
+│  [Putback/reb]   [Off-ball]         │  CHEST STRONG   │
+│  [Take foul]     [Ambiguous]        │  RA             │
 │                                     │                 │
-│  Mechanism:                         │                 │
-│  [1] DRV-BODY  [2] DRV-ARM         │  Progress:      │
-│  [3] DRV-INIT  [4] JMP-CONTEST     │  3/47           │
-│  [5] JMP-LANDING [6] JMP-PUMP      │                 │
-│  [7] JMP-RIP   [8] POST-REACH      │  Previous:      │
-│  [9] REB       [0] OFFBALL         │  DRV-BODY       │
-│  [Q] TAKE      [W] AMB             │  ALWAYS / RA    │
+│  Body Part:                         │                 │
+│  [Head] [Arm/Hand] [Chest/Body]     │                 │
+│  [Shoulder] [Lower Body]            │                 │
 │                                     │                 │
-│  Discretion:                        │                 │
-│  [A] ALWAYS  [S] MARGINAL  [D] SOUGHT │              │
+│  Timing:  ← only for drive mechs    │                 │
+│  [Before (gather)] [During] [After] │                 │
 │                                     │                 │
-│  Location:                           │                 │
-│  [Z] RA  [X] PAINT  [C] MID  [V] PERIM │            │
+│  Severity:                          │                 │
+│  [Strong]  [Medium]  [Marginal]     │                 │
+│  [____________________________]     │                 │
+│   optional one-sentence note        │                 │
 │                                     │                 │
-│  [N] Next  [P] Prev  [E] Export CSV │                 │
+│  Location:                          │                 │
+│  [Restricted Area] [Paint]          │                 │
+│  [Mid-range]       [Perimeter]      │                 │
+│                                     │                 │
+│  [← Prev]  [Next →]  [Export CSV]  [Clear]           │
 └──────────────────────────────────────────────────────┘
 ```
 
-### Keyboard bindings
+### Interface
 
-| Key | Action |
-|-----|--------|
-| `1` | DRV-BODY |
-| `2` | DRV-ARM |
-| `3` | DRV-INIT |
-| `4` | JMP-CONTEST |
-| `5` | JMP-LANDING |
-| `6` | JMP-PUMP |
-| `7` | JMP-RIP |
-| `8` | POST-REACH |
-| `9` | REB |
-| `0` | OFFBALL |
-| `Q` | TAKE |
-| `W` | AMB |
-| `A` | ALWAYS (discretion) |
-| `S` | MARGINAL (discretion) |
-| `D` | SOUGHT (discretion) |
-| `Z` | RA (location) |
-| `X` | PAINT (location) |
-| `C` | MID (location) |
-| `V` | PERIM (location) |
-| `N` | Next clip |
-| `P` | Previous clip |
-| `E` | Export CSV |
-| `R` | Replay video |
-| `Backspace` | Clear current classification |
+Click-based UI — all classification is done by clicking buttons. No keyboard shortcuts. The Timing section is hidden by default and appears only when a drive mechanism (DRV-FINISH, DRV-INIT, ARM-HOOK) is selected.
 
 ### Workflow
 
-1. Page loads → first clip autoplays
-2. Reviewer watches clip (typically 5-15 seconds)
-3. Press mechanism key → mechanism highlighted, video pauses
-4. Press discretion key → discretion set
-5. Press location key → location set
-6. All three set → auto-advance to next clip after 0.5s confirmation flash
-7. If unsure, press `W` (AMB) for mechanism → still requires discretion + location
-8. At any time: `P` to go back and re-classify, `E` to export
+1. Page loads → first clip autoplays and loops
+2. Click mechanism button
+3. Click body part button
+4. If a drive mechanism was selected, the Timing section appears → click a timing button
+5. Click severity button
+6. Optionally type a one-sentence note in the severity note field for tricky calls
+7. Click location button
+8. All required fields complete → 0.5s green flash, auto-advance to next clip
+9. Click **← Prev** / **Next →** to navigate manually at any time
+10. Click **Clear** to reset the current clip's classification
+11. Click **Export CSV** to download all completed classifications
 
-### Data model (localStorage)
+### Completion rules
+
+A clip is considered classified when all required fields are set:
+- Mechanism, Body Part, Severity, Location always required
+- Timing required only when mechanism is DRV-FINISH, DRV-INIT, or ARM-HOOK
+- Severity note is always optional (never blocks auto-advance)
+
+### Data model (localStorage key: `ftc_v3_{player_slug}`)
 
 ```json
 {
-  "classifications": {
+  "idx": 3,
+  "cls": {
     "0042300164_13": {
-      "mechanism": "DRV-ARM",
-      "discretion": "SOUGHT",
-      "location": "RA",
-      "timestamp": "2026-06-17T20:15:00Z"
+      "mech":   "DRV-FINISH",
+      "body":   "CHEST",
+      "timing": "DURING",
+      "sev":    "STRONG",
+      "note":   "Full-speed collision, Nurkic slid back 2 feet",
+      "loc":    "RA",
+      "ts":     "2026-06-18T18:15:00Z"
     }
-  },
-  "currentClipIndex": 3,
-  "playerSlug": "james_harden"
+  }
 }
 ```
+
+Note: the `v3` prefix in the key means data from the v2 classifier is not loaded automatically.
 
 ### CSV export format
 
 ```csv
-game_id,event_id,player_name,period,clock,description,opponent,score,mechanism,discretion,location,timestamp
-0042300164,13,James Harden,1,PT11M43S,Nurkic S.FOUL (P1.T1),LAC,0-2,DRV-ARM,SOUGHT,RA,2026-06-17T20:15:00Z
+game_id,event_id,period,clock,description,opponent,mechanism,body_part,timing,severity,severity_note,location,timestamp
+0042300164,13,1,PT11M43S,"Nurkic S.FOUL (P1.T1)",LAC,DRV-FINISH,CHEST,DURING,STRONG,"Full-speed collision, Nurkic slid back 2 feet",RA,2026-06-18T18:15:00Z
 ```
+
+The `timing` column is empty for non-drive mechanisms. The `severity_note` column is empty when no note was entered.
 
 ---
 
@@ -250,10 +274,10 @@ game_id,event_id,player_name,period,clock,description,opponent,score,mechanism,d
 
 | Player | Why | Expected profile |
 |--------|-----|------------------|
-| **Harden** | Highest FTA shift in cohort (−3.3/36); known for arm hooks, rip-throughs, pump-fake jump-intos | High SOUGHT%, high DRV-ARM, high JMP-PUMP/RIP |
-| **Giannis** | Large FTA shift (−4.5/36) but from through-body contact — genuine rim finishes | High DRV-BODY, high ALWAYS, low SOUGHT |
+| **Harden** | Highest FTA shift in cohort (−3.3/36); known for arm hooks, rip-throughs, pump-fake jump-intos | High ARM-HOOK/RIP-THRU/PUMP-JUMP, high MARGINAL severity, high ARM body part |
+| **Giannis** | Large FTA shift (−4.5/36) but from through-body contact — genuine rim finishes | High DRV-FINISH, high STRONG severity, high CHEST body part |
 
-**Prediction:** If foul discretion explains FTA shift, Harden's SOUGHT% should be dramatically higher than Giannis's, and Giannis's ALWAYS% should be dramatically higher than Harden's. If they're similar, foul type is not the missing variable.
+**Prediction:** If foul type explains FTA shift, Harden should show high MARGINAL severity + foul-seeking mechanisms (ARM-HOOK, RIP-THRU, PUMP-JUMP), while Giannis should show high STRONG severity + DRV-FINISH + CHEST/BODY contact. If severity and mechanism distributions are similar between the two, foul type is not the missing variable.
 
 **Games:** Select 5 recent RS games per player from 2023-24 or 2024-25 seasons (video availability is best for recent games).
 
@@ -301,10 +325,10 @@ Expand to the 10-12 players with the strongest FTA shift signals (both positive 
 
 | File | Description | Status |
 |------|-------------|--------|
-| `src/foul_type_scraper.py` | PBP filter + video URL fetcher → manifest JSON | To build |
-| `src/foul_type_classifier.py` | Manifest JSON → classification HTML tool | To build |
-| `data/processed/foul_type_manifest_*.json` | Per-player clip manifests | Generated by scraper |
-| `output/foul_type_classifier_*.html` | Per-player classification tools | Generated by classifier |
+| `src/foul_type_scraper.py` | PBP filter + video URL fetcher → manifest JSON | **Done** |
+| `src/foul_type_classifier.py` | Manifest JSON → classification HTML tool | **Done** |
+| `data/processed/foul_type_manifest_*.json` | Per-player clip manifests | **Generated** (Harden: 20, Giannis: 16) |
+| `output/foul_type_classifier_*.html` | Per-player classification tools | **Generated** |
 | `data/processed/foul_type_classifications.csv` | All classifications (after export) | Human-generated |
 | `data/processed/foul_type_player_profiles.csv` | Per-player foul-type composition | After full sample |
 
@@ -316,13 +340,13 @@ Expand to the 10-12 players with the strongest FTA shift signals (both positive 
 
 2. **960x540 resolution.** Good enough to distinguish arm hooks from body contact. 1280x720 is overkill for classification and would slow loading. 320x180 is too small to see arm-level detail.
 
-3. **Self-contained HTML.** No build step, no npm, no server. The reviewer opens a file in Chrome and starts classifying. The manifest data is embedded in the HTML as a JSON blob.
+3. **HTML served via localhost.** No build step, no npm. Run `make foul-type-serve` (or `python -m http.server 8080 --directory output`) and open in Chrome. The manifest data is embedded in the HTML as a JSON blob. A local HTTP server is required because NBA CDN videos have no CORS headers — `file://` won't load them.
 
 4. **localStorage for state.** Classifications persist across page refreshes. The export button writes to CSV file via the browser's download mechanism. No server round-trips.
 
-5. **Three-axis classification (mechanism + discretion + location).** Mechanism is what you see. Discretion is your judgment on whether the foul was sought. Location is where it happened. The alpha test is whether `sought%` differs between Harden and Giannis.
+5. **Five-axis classification (mechanism + body part + timing + severity + location).** All axes describe observable facts — what happened, where contact landed, when, how hard, and from where on the court. Severity is the most judgment-dependent axis but is grounded in physics (force/trajectory change), not referee behavior. The optional severity note captures reasoning on ambiguous calls and doubles as future few-shot examples for LLM grading. Timing is a conditional sub-tag shown only for drive mechanisms.
 
-6. **`actionId` → `GameEventID` mapping.** The PBP `actionId` field maps directly to the `GameEventID` parameter in the `videoeventsasset` API. Verified on the Nurkic S.FOUL example (actionId=3, GameEventID=13 — note: GameEventID is the `actionNumber` field, not `actionId`; verify this mapping during scraper build).
+6. **`actionNumber` → `GameEventID` mapping.** The PBP `actionNumber` field (NOT `actionId`) maps to the `GameEventID` parameter in the `videoeventsasset` API. Verified across multiple games — `actionId` returns empty video URLs. The scraper uses `actionNumber` exclusively.
 
 ---
 
@@ -332,6 +356,6 @@ Expand to the 10-12 players with the strongest FTA shift signals (both positive 
 |------|-------------|------------|
 | `videoeventsasset` requires authentication or breaks | Low — verified working June 17, 2026 with standard headers | Fall back to nba.com/stats/events page (manual browser navigation) |
 | Video URLs expire | Low — CDN URLs appear stable (cache headers show 31536000s TTL) | Re-scrape if URLs expire; manifest stores all metadata for re-generation |
-| `actionId`/`actionNumber` mapping is inconsistent | Medium | Verify on 3-4 games before building full scraper; log mismatches |
+| `actionNumber` mapping breaks on older games | Low — verified working back to 2014-15 season | Use `videoAvailable` flag on PBP actions as pre-check |
 | Harden and Giannis have similar foul-type profiles | Medium | This is the kill criterion — honest null result, foul type is not the variable |
 | Classification takes >30 seconds per clip | Low with keyboard-driven UI | Practice round of 5 clips; adjust UI if flow feels slow |
