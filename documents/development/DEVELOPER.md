@@ -1,6 +1,6 @@
 # Developer Onboarding
 
-**Last updated:** June 17, 2026 (foul-type video classification tool spec complete; `videoeventsasset` API verified)
+**Last updated:** June 23, 2026 (LLM video grader built with Vertex AI support; `foul_type_llm_grader.py` supports Gemini, OpenAI, Anthropic, and Vertex providers)
 
 This guide gets a new contributor from clone to running analyses to understanding what is settled vs. open. Read this first, then [`findings.md`](findings.md) for results and [`open_questions.md`](open_questions.md) for what's next.
 
@@ -16,7 +16,7 @@ A quantitative study of playoff failure modes across 31 HOF-caliber NBA players 
 
 2. **Trigger taxonomy (Screen F, retired):** Attempted to classify *when* floor games happen based on opponent-quality terciles. Produced a 5-bucket classification (opponent-independent, scheme-dependent, disengagement, bimodal, standard). **Failed Phase A validation** (June 2026): 31% split-sample concordance, 23% gradient stability. The taxonomy is not a stable trait. Retired as primary axis; gradient signal (continuous) retained as descriptive measure.
 
-3. **Architecture prediction (dead) → Foul-type video classification (current):** The predictive path forward is foul discretion — classifying shooting fouls by whether the contact is always-called or marginally-called. This requires video review. Tool spec complete; implementation is next. See [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md).
+3. **Architecture prediction (dead) → Foul-type video classification (current):** The predictive path forward is foul discretion — classifying shooting fouls by whether the contact is always-called or marginally-called. This requires video review. Tool spec complete; manual classifier and LLM grader both built. See [`foul_type_classifier_plan.md`](foul_type_classifier_plan.md).
 
 ### Current thesis
 
@@ -64,6 +64,9 @@ does-harden-choke/
 │   ├── validate_team_logs.py
 │   ├── join_causal_table.py  # Causal chain Step 1 (written, needs revision)
 │   ├── mechanism_descriptives.py   # Causal chain Step 2 (stub)
+│   ├── foul_type_scraper.py        # PBP filter + video URL fetcher → manifest JSON
+│   ├── foul_type_classifier.py     # Manifest JSON → classification HTML tool
+│   ├── foul_type_llm_grader.py     # Multimodal LLM video grading (Gemini/OpenAI/Anthropic/Vertex)
 │   ├── visualize.py
 │   └── pass2/                # Possession-level analysis (partial)
 ├── data/
@@ -197,6 +200,49 @@ make foul-type-serve     # start local server
 # Open http://localhost:8080/foul_type_classifier_james_harden.html
 # Open http://localhost:8080/foul_type_classifier_giannis_antetokounmpo.html
 ```
+
+### LLM video grader (built June 23, 2026)
+
+Automated timing classification (BEFORE/DURING/AFTER) of shooting fouls from video clips using multimodal LLMs. Supplements the manual classifier by grading the timing axis automatically.
+
+**Script:** `src/foul_type_llm_grader.py`
+
+**Providers:**
+
+| Provider | Model | Auth | Video handling |
+|----------|-------|------|---------------|
+| **Vertex AI** (recommended) | `gemini-2.5-flash` | gcloud ADC (no API key) | Native video upload via GCS |
+| Gemini | `gemini-2.5-flash` | `GEMINI_API_KEY` env var | Native video upload |
+| OpenAI | `gpt-5.4-mini` | `OPENAI_API_KEY` env var | Frame extraction (3fps, 15 frames) |
+| Anthropic | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` env var | Frame extraction (2fps, 10 frames) |
+
+**Vertex AI setup (no API key needed):**
+1. Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+2. Run `gcloud auth application-default login`
+3. Set project: `gcloud config set project <PROJECT_ID>`
+4. The grader uses a GCS bucket (`project-3984c931-3755-423f-966-foul-type-grader-tmp`) with 1-day auto-delete for temporary video uploads
+
+**Run the LLM grader:**
+```bash
+# Vertex AI (recommended — no API key needed)
+make foul-type-vertex-harden           # Harden RS
+make foul-type-vertex-validate-harden  # validate against manual ground truth
+
+# Gemini API (requires GEMINI_API_KEY)
+make foul-type-llm-harden
+
+# OpenAI / Anthropic (requires respective API keys)
+PYTHONPATH=. .venv/bin/python src/foul_type_llm_grader.py --player "James Harden" --provider "openai" --model "gpt-5.4-mini"
+PYTHONPATH=. .venv/bin/python src/foul_type_llm_grader.py --player "James Harden" --provider "anthropic" --model "claude-sonnet-4-6"
+```
+
+**Output:** `data/processed/foul_type_llm_results_{player_slug}.json` — per-clip timing predictions with confidence and reasoning, plus validation analytics against manual ground truth when available.
+
+**Key technical notes:**
+- The LLM grader currently classifies only the **timing** axis (BEFORE/DURING/AFTER). Mechanism, body part, severity, and location still require the manual classifier HTML tool.
+- Gemini/Vertex use native video upload (best temporal precision). OpenAI and Anthropic use extracted frames (lower temporal resolution).
+- `--validate-only` restricts grading to clips with manual ground truth in `foul_type_classifications.csv` for accuracy benchmarking.
+- `--limit N` caps grading to the first N clips (useful for cost control and testing).
 
 **Key technical notes:**
 - `videoeventsasset` API (NOT `videodetailsasset`, which returns 500) returns direct MP4 URLs

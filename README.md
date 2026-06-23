@@ -42,7 +42,7 @@ The key variables are:
 
 The 2025 NBA Finals discourse argues KAT "shed the loser label." But KAT didn't fundamentally change — the Knicks' elite defense hides his floor weaknesses. Harden is the opposite case: you can't build a system solution for a failure mode you can't predict. Dirk proves the narrative flip is almost always a system change, not a player change.
 
-**Status (June 2026):** Pass 1 complete and extended. Trigger taxonomy Phase A validation complete (taxonomy retired). Box-score architecture model failed (R² = 0.128). Shot-chart mode_independence_score has no discriminative power (range 0.315–0.340). RS opponent-independence marginally predicts PO floor rate (r = −0.32, p = 0.09) but signal is fragile. FTA shift deep-dive (Phase E, June 17) produced the project's strongest finding: FTA per-36 shift → PO floor rate r = −0.53, p = 0.002. Predictive test fails (r = −0.16) because FTA shift is retrospective. **The path to a predictive contribution is foul-type video classification** — see `foul_type_classifier_plan.md`. The `videoeventsasset` API is verified working.
+**Status (June 2026):** Pass 1 complete and extended. Trigger taxonomy Phase A validation complete (taxonomy retired). Box-score architecture model failed (R² = 0.128). Shot-chart mode_independence_score has no discriminative power (range 0.315–0.340). RS opponent-independence marginally predicts PO floor rate (r = −0.32, p = 0.09) but signal is fragile. FTA shift deep-dive (Phase E, June 17) produced the project's strongest finding: FTA per-36 shift → PO floor rate r = −0.53, p = 0.002. Predictive test fails (r = −0.16) because FTA shift is retrospective. **The path to a predictive contribution is foul-type video classification** — see `foul_type_classifier_plan.md`. The `videoeventsasset` API is verified working. **LLM video grader built** (`src/foul_type_llm_grader.py`) — supports Gemini, OpenAI, Anthropic, and Vertex AI (gcloud ADC, no API key needed) providers for automated timing classification of shooting fouls.
 
 **Start here:** [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) to onboard and run the pipeline. [`documents/development/findings.md`](documents/development/findings.md) for full results. [`documents/development/open_questions.md`](documents/development/open_questions.md) for what's decided and what's next.
 
@@ -53,7 +53,7 @@ The 2025 NBA Finals discourse argues KAT "shed the loser label." But KAT didn't 
 | [`DEVELOPER.md`](documents/development/DEVELOPER.md) | **Onboarding** — setup, pipeline, cohort, what's done vs. open |
 | [`findings.md`](documents/development/findings.md) | Full results — Pass 1 screens A–E, extensions, trigger taxonomy (retired), Phase A validation |
 | [`open_questions.md`](documents/development/open_questions.md) | Resolved decisions, architecture-prediction next steps |
-| [`foul_type_classifier_plan.md`](documents/development/foul_type_classifier_plan.md) | **Foul-type classifier tool** — build spec for video classification |
+| [`foul_type_classifier_plan.md`](documents/development/foul_type_classifier_plan.md) | **Foul-type classifier tool** — build spec for video classification + LLM grader |
 | [`foul_type_video_plan.md`](documents/development/foul_type_video_plan.md) | Foul-type scoping document — why video, taxonomy, data sources |
 | [`CRITICAL_GAPS.md`](documents/development/CRITICAL_GAPS.md) | Trigger taxonomy gaps — **resolved by Phase A testing (taxonomy failed)** |
 | [`causal_chain_plan.md`](documents/development/causal_chain_plan.md) | Causal chain Steps 0–4 (Step 0 complete); needs revision for architecture framing |
@@ -109,13 +109,35 @@ make architecture-model  # box-score architecture → PO floor rate (R²=0.128 �
 # make shot-chart-features # → data/processed/shot_chart_architecture.csv
 ```
 
+Foul-type LLM grading (automated timing classification from video):
+```bash
+# Gemini API (requires GEMINI_API_KEY or GOOGLE_API_KEY)
+make foul-type-llm-harden           # Harden RS
+make foul-type-llm-harden-po        # Harden PO
+make foul-type-llm-giannis          # Giannis RS
+make foul-type-llm-giannis-po       # Giannis PO
+make foul-type-llm-validate-harden  # validate against manual ground truth
+
+# Vertex AI (uses gcloud ADC — no API key needed)
+make foul-type-vertex-harden           # Harden RS via Vertex
+make foul-type-vertex-harden-po        # Harden PO via Vertex
+make foul-type-vertex-giannis          # Giannis RS via Vertex
+make foul-type-vertex-giannis-po       # Giannis PO via Vertex
+make foul-type-vertex-validate-harden  # validate against manual ground truth
+```
+
 Or `make all` after scrape (screens A–C + visualize).
 
 ## What to do next
 
 The project has found a strong descriptive predictor (FTA shift, r = −0.53) but the predictive loop doesn't close because FTA shift is retrospective. The path forward is **foul-type video classification** — classifying shooting fouls by discretion (always-called vs marginally-called vs sought) to test whether RS foul-discretion composition predicts FTA shift direction.
 
-See [`foul_type_classifier_plan.md`](documents/development/foul_type_classifier_plan.md) for the full build spec. Alpha test: Harden vs Giannis, ~80 clips.
+Two tools now support this:
+
+1. **Manual classifier** (`src/foul_type_classifier.py`) — keyboard-driven HTML tool for human review of video clips
+2. **LLM grader** (`src/foul_type_llm_grader.py`) — automated timing classification (BEFORE/DURING/AFTER) via multimodal LLMs. Supports Gemini (native video), OpenAI (GPT-5.4-mini, frame-based), Anthropic (Claude Sonnet 4.6, frame-based), and Vertex AI (gcloud ADC, no API key needed).
+
+See [`foul_type_classifier_plan.md`](documents/development/foul_type_classifier_plan.md) for the full build spec.
 
 If foul-type classification also fails, the project's honest contribution is descriptive:
 1. FTA-FGA co-collapse mechanism

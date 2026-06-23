@@ -1,6 +1,6 @@
 # Open Questions — Status
 
-**Date:** June 2026 | **Last updated:** June 17, 2026 (FTA shift deep-dive: project's strongest finding)
+**Date:** June 2026 | **Last updated:** June 23, 2026 (LLM video grader built with Vertex AI support; `foul_type_llm_grader.py` supports Gemini, OpenAI, Anthropic, and Vertex providers)
 **Context:** Pass 1 complete and extended. Trigger taxonomy retired (Phase A). Architecture model failed (Phases B/C). FTA shift analysis (Phase E, June 17) produced r = −0.528, p = 0.002 — the project's strongest predictor. Split-half stability moderate (r = 0.45) but predictive test fails (H1 → H2 floor rate: r = −0.16). Missing variable identified: foul type (requires video classification). Five pre-scaling questions from March 2026 are resolved below.
 
 Evidence lives in [`findings.md`](findings.md). Onboarding: [`DEVELOPER.md`](DEVELOPER.md). FTA deep-dive: `src/fta_dependency_deepdive.py`. Video plan: [`foul_type_video_plan.md`](foul_type_video_plan.md).
@@ -386,3 +386,5 @@ The descriptive contributions are real and publishable: FTA-FGA co-collapse mech
 | Jun 17, 2026 | **Foul-type taxonomy revised to v2 (discretion axis).** Categories organized by observable contact mechanism (DRV-BODY, DRV-ARM, JMP-PUMP, etc.) + separate discretion tag (ALWAYS/MARGINAL/SOUGHT) + location. Alpha test is whether `sought%` differs between Harden and Giannis. See `foul_type_classifier_plan.md` |
 | Jun 17, 2026 | **`videoeventsasset` API verified working.** Returns direct 960x540 MP4 URLs for any play event. `videodetailsasset` (wrong endpoint) returns 500. |
 | Jun 17, 2026 | **Foul-type classifier tool spec complete.** `foul_type_classifier_plan.md` — keyboard-driven HTML classification tool. Two Python scripts: scraper (manifest) + classifier (HTML). Alpha test: Harden vs Giannis, 5 RS games each, ~80 clips. |
+| Jun 23, 2026 | **LLM video grader built** (`src/foul_type_llm_grader.py`). Automated timing classification (BEFORE/DURING/AFTER) using multimodal LLMs. Supports Gemini, OpenAI, Anthropic, and Vertex AI (gcloud ADC, no API key needed). Vertex provider uses GCS bucket with 1-day auto-delete for temporary video uploads. |
+| Jun 23, 2026 | **Makefile targets added** for all LLM grader providers: `foul-type-llm-*` (Gemini), `foul-type-vertex-*` (Vertex AI). |

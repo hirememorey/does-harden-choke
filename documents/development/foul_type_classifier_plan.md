@@ -1,7 +1,7 @@
 # Foul-Type Video Classifier — Implementation Plan
 
-**Date:** June 17, 2026 (taxonomy revised June 18, 2026)
-**Status:** Ready to build
+**Date:** June 17, 2026 (taxonomy revised June 18, 2026; LLM grader added June 23, 2026)
+**Status:** Manual classifier + LLM grader built
 **Predecessor:** `foul_type_video_plan.md` (scoping document)
 
 ## Problem Statement
@@ -306,6 +306,28 @@ Expand to the 10-12 players with the strongest FTA shift signals (both positive 
 - Implement keyboard bindings, localStorage persistence, CSV export
 - Include instructions panel visible on first load
 
+### 2b. Build `foul_type_llm_grader.py` (built June 23, 2026)
+
+Automated timing classification (BEFORE/DURING/AFTER) using multimodal LLMs. Supplements the manual classifier by grading the timing axis automatically.
+
+**Providers:** Gemini (native video, recommended), OpenAI (GPT-5.4-mini, frame-based), Anthropic (Claude Sonnet 4.6, frame-based), **Vertex AI** (gcloud ADC, no API key needed — uses GCS for video upload).
+
+**Usage:**
+```bash
+# Vertex AI (no API key needed)
+PYTHONPATH=. python src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash"
+
+# Gemini API
+PYTHONPATH=. python src/foul_type_llm_grader.py --player "James Harden" --provider "gemini" --model "gemini-2.5-flash"
+
+# Validate against manual ground truth
+PYTHONPATH=. python src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash" --validate-only
+```
+
+**Scope:** Currently grades only the timing axis (BEFORE/DURING/AFTER). Mechanism, body part, severity, and location still require the manual classifier HTML tool. Extending the LLM grader to additional axes is straightforward — add fields to the system prompt and response schema.
+
+**Vertex AI setup:** Uses gcloud Application Default Credentials for authentication. Videos are uploaded to a GCS bucket (`project-3984c931-3755-423f-966-foul-type-grader-tmp`) with 1-day lifecycle auto-delete. No API key environment variable required.
+
 ### 3. Alpha test (~30 minutes)
 
 - Run scraper for Harden + Giannis (5 RS games each)
@@ -327,6 +349,7 @@ Expand to the 10-12 players with the strongest FTA shift signals (both positive 
 |------|-------------|--------|
 | `src/foul_type_scraper.py` | PBP filter + video URL fetcher → manifest JSON | **Done** |
 | `src/foul_type_classifier.py` | Manifest JSON → classification HTML tool | **Done** |
+| `src/foul_type_llm_grader.py` | Multimodal LLM video grading (Gemini/OpenAI/Anthropic/Vertex) | **Done** |
 | `data/processed/foul_type_manifest_*.json` | Per-player clip manifests | **Generated** (Harden: 20, Giannis: 16) |
 | `output/foul_type_classifier_*.html` | Per-player classification tools | **Generated** |
 | `data/processed/foul_type_classifications.csv` | All classifications (after export) | Human-generated |

@@ -229,6 +229,115 @@ class AnthropicGrader(LLMGrader):
             return self._parse_json_response(res_text)
 
 
+class VertexGeminiGrader(LLMGrader):
+    """Grader using Vertex AI Gemini via gcloud ADC — no API key required.
+
+    Authenticates via ``gcloud auth application-default print-access-token``,
+    uploads videos to a GCS bucket, and calls the Vertex AI generateContent
+    endpoint with native video understanding.
+    """
+
+    GCS_BUCKET = "project-3984c931-3755-423f-966-foul-type-grader-tmp"
+    LOCATION = "us-central1"
+
+    def __init__(self, model_name: str, project: Optional[str] = None):
+        super().__init__(api_key="", model_name=model_name)
+        self.project = project or self._detect_project()
+        self._token_cache: Tuple[float, str] = (0.0, "")
+
+    @staticmethod
+    def _detect_project() -> str:
+        result = subprocess.run(
+            ["gcloud", "config", "get-value", "project"],
+            capture_output=True, text=True,
+        )
+        project = result.stdout.strip()
+        if not project:
+            raise RuntimeError("Could not detect GCP project. Run `gcloud config set project <PROJECT>`.")
+        return project
+
+    def _access_token(self) -> str:
+        ts, tok = self._token_cache
+        if tok and (time.time() - ts) < 300:
+            return tok
+        result = subprocess.run(
+            ["gcloud", "auth", "application-default", "print-access-token"],
+            capture_output=True, text=True,
+        )
+        token = result.stdout.strip()
+        if not token:
+            raise RuntimeError("Failed to obtain access token via gcloud ADC.")
+        self._token_cache = (time.time(), token)
+        return token
+
+    def _upload_to_gcs(self, local_path: str, object_name: str) -> str:
+        token = self._access_token()
+        url = f"https://storage.googleapis.com/upload/storage/v1/b/{self.GCS_BUCKET}/o"
+        params = {"uploadType": "media", "name": object_name}
+        with open(local_path, "rb") as f:
+            data = f.read()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "video/mp4",
+        }
+        resp = requests.post(url, headers=headers, params=params, data=data)
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"GCS upload failed ({resp.status_code}): {resp.text}")
+        return f"gs://{self.GCS_BUCKET}/{object_name}"
+
+    def _delete_gcs_object(self, object_name: str) -> None:
+        token = self._access_token()
+        url = f"https://storage.googleapis.com/storage/v1/b/{self.GCS_BUCKET}/o/{object_name}"
+        headers = {"Authorization": f"Bearer {token}"}
+        requests.delete(url, headers=headers)
+
+    def grade_clip(self, video_path: str, description: str) -> Dict[str, Any]:
+        token = self._access_token()
+        object_name = f"grader_tmp/{os.path.basename(video_path)}"
+
+        try:
+            gcs_uri = self._upload_to_gcs(video_path, object_name)
+        except Exception as exc:
+            return {"timing": "UNKNOWN", "confidence": "LOW", "reasoning": f"GCS upload error: {exc}"}
+
+        generate_url = (
+            f"https://{self.LOCATION}-aiplatform.googleapis.com/v1/"
+            f"projects/{self.project}/locations/{self.LOCATION}/"
+            f"publishers/google/models/{self.model_name}:generateContent"
+        )
+        payload = {
+            "contents": [{
+                "role": "user",
+                "parts": [
+                    {"file_data": {"mime_type": "video/mp4", "file_uri": gcs_uri}},
+                    {"text": SYSTEM_PROMPT + f"\n\nPlay-by-play description: {description}\nAnalyze this video and return a raw JSON object."}
+                ]
+            }],
+            "generationConfig": {
+                "response_mime_type": "application/json",
+                "temperature": 0.0
+            }
+        }
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            resp = requests.post(generate_url, headers=headers, json=payload)
+            if resp.status_code != 200:
+                return {"timing": "UNKNOWN", "confidence": "LOW", "reasoning": f"Vertex AI Error {resp.status_code}: {resp.text[:500]}"}
+            res_text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return self._parse_json_response(res_text)
+        except Exception as exc:
+            return {"timing": "UNKNOWN", "confidence": "LOW", "reasoning": f"Vertex AI parse error: {exc}"}
+        finally:
+            try:
+                self._delete_gcs_object(object_name)
+            except Exception:
+                logger.warning("Failed to delete GCS object %s", object_name)
+
+
 class GeminiGrader(LLMGrader):
     """Grader using Google's Gemini API via direct File uploads (best native video understanding)."""
 
@@ -367,31 +476,37 @@ def load_manifest(player: str, season_type: str = "Regular Season") -> Dict[str,
 def main():
     parser = argparse.ArgumentParser(description="Multimodal LLM video foul timing grader")
     parser.add_argument("--player", required=True, help="Player name (must match config.py)")
-    parser.add_argument("--provider", required=True, choices=["openai", "anthropic", "gemini"], help="LLM Provider")
+    parser.add_argument("--provider", required=True, choices=["openai", "anthropic", "gemini", "vertex"], help="LLM Provider")
     parser.add_argument("--model", required=True, help="Model name (e.g. gpt-5.4-mini, claude-sonnet-4-6, gemini-2.5-flash)")
     parser.add_argument("--season-type", default="Regular Season", help="Regular Season or Playoffs (selects the correct manifest)")
     parser.add_argument("--limit", type=int, default=None, help="Limit grading to first N clips")
     parser.add_argument("--validate-only", action="store_true", help="Only grade clips that have manual ground truth in foul_type_classifications.csv")
     args = parser.parse_args()
 
-    # Get API key from env
+    # Get API key from env (vertex uses gcloud ADC — no key needed)
     key_env_map = {
         "openai": "OPENAI_API_KEY",
         "anthropic": "ANTHROPIC_API_KEY",
         "gemini": "GEMINI_API_KEY"
     }
-    env_var = key_env_map[args.provider]
-    api_key = os.getenv(env_var) or (os.getenv("GOOGLE_API_KEY") if args.provider == "gemini" else None)
-    
-    if not api_key:
-        print(f"Error: API key for {args.provider} not found in environment ({env_var}).")
-        sys.exit(1)
+
+    if args.provider == "vertex":
+        api_key = ""
+    else:
+        env_var = key_env_map[args.provider]
+        api_key = os.getenv(env_var) or (os.getenv("GOOGLE_API_KEY") if args.provider == "gemini" else None)
+
+        if not api_key:
+            print(f"Error: API key for {args.provider} not found in environment ({env_var}).")
+            sys.exit(1)
 
     # Initialize Grader
     if args.provider == "openai":
         grader = OpenAIGrader(api_key, args.model)
     elif args.provider == "anthropic":
         grader = AnthropicGrader(api_key, args.model)
+    elif args.provider == "vertex":
+        grader = VertexGeminiGrader(args.model)
     else:
         grader = GeminiGrader(api_key, args.model)
 

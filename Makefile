@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-harden-po foul-type-scrape-giannis foul-type-scrape-giannis-po foul-type-classify-harden foul-type-classify-giannis foul-type-llm-validate-harden foul-type-llm-harden foul-type-llm-harden-po foul-type-llm-giannis foul-type-llm-giannis-po foul-type-alpha foul-type-serve
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-harden-po foul-type-scrape-giannis foul-type-scrape-giannis-po foul-type-classify-harden foul-type-classify-giannis foul-type-llm-validate-harden foul-type-llm-harden foul-type-llm-harden-po foul-type-llm-giannis foul-type-llm-giannis-po foul-type-vertex-validate-harden foul-type-vertex-harden foul-type-vertex-harden-po foul-type-vertex-giannis foul-type-vertex-giannis-po foul-type-alpha foul-type-serve
 
 venv:
 	python3 -m venv .venv
@@ -134,6 +134,22 @@ foul-type-llm-giannis:
 
 foul-type-llm-giannis-po:
 	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "gemini" --model "gemini-2.5-flash" --season-type Playoffs
+
+# Vertex AI grading (uses gcloud ADC — no API key needed)
+foul-type-vertex-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash" --validate-only
+
+foul-type-vertex-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash"
+
+foul-type-vertex-harden-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash" --season-type Playoffs
+
+foul-type-vertex-giannis:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-2.5-flash"
+
+foul-type-vertex-giannis-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-2.5-flash" --season-type Playoffs
 
 foul-type-alpha: foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis
 	@echo ""
