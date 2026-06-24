@@ -42,7 +42,7 @@ The key variables are:
 
 The 2025 NBA Finals discourse argues KAT "shed the loser label." But KAT didn't fundamentally change — the Knicks' elite defense hides his floor weaknesses. Harden is the opposite case: you can't build a system solution for a failure mode you can't predict. Dirk proves the narrative flip is almost always a system change, not a player change.
 
-**Status (June 2026):** Pass 1 complete and extended. Trigger taxonomy Phase A validation complete (taxonomy retired). Box-score architecture model failed (R² = 0.128). Shot-chart mode_independence_score has no discriminative power (range 0.315–0.340). RS opponent-independence marginally predicts PO floor rate (r = −0.32, p = 0.09) but signal is fragile. FTA shift deep-dive (Phase E, June 17) produced the project's strongest finding: FTA per-36 shift → PO floor rate r = −0.53, p = 0.002. Predictive test fails (r = −0.16) because FTA shift is retrospective. **The path to a predictive contribution is foul-type video classification** — see `foul_type_classifier_plan.md`. The `videoeventsasset` API is verified working. **LLM video grader built** (`src/foul_type_llm_grader.py`) — supports Gemini, OpenAI, Anthropic, and Vertex AI (gcloud ADC, no API key needed) providers for automated timing classification of shooting fouls.
+**Status (June 2026):** Pass 1 complete and extended. Trigger taxonomy Phase A validation complete (taxonomy retired). Box-score architecture model failed (R² = 0.128). Shot-chart mode_independence_score has no discriminative power (range 0.315–0.340). RS opponent-independence marginally predicts PO floor rate (r = −0.32, p = 0.09) but signal is fragile. FTA shift deep-dive (Phase E, June 17) produced the project's strongest finding: FTA per-36 shift → PO floor rate r = −0.53, p = 0.002. Predictive test fails (r = −0.16) because FTA shift is retrospective. **The path to a predictive contribution is foul-type video classification** — see `foul_type_classifier_plan.md`. The `videoeventsasset` API is verified working. **LLM video grader built** (`src/foul_type_llm_grader.py`) — supports four prompt modes (legacy 13-field, 3-field observation, direct-timing, event-ordering sequence) and four providers (Gemini, OpenAI, Anthropic, Vertex AI). Event-ordering sequence prompt achieves 71% binary phase accuracy and 50% 3-way timing accuracy on the Harden validation set (20 clips), up from 40%/0% with the original 13-field prompt.
 
 **Start here:** [`documents/development/DEVELOPER.md`](documents/development/DEVELOPER.md) to onboard and run the pipeline. [`documents/development/findings.md`](documents/development/findings.md) for full results. [`documents/development/open_questions.md`](documents/development/open_questions.md) for what's decided and what's next.
 
@@ -111,19 +111,26 @@ make architecture-model  # box-score architecture → PO floor rate (R²=0.128 �
 
 Foul-type LLM grading (automated timing classification from video):
 ```bash
-# Gemini API (requires GEMINI_API_KEY or GOOGLE_API_KEY)
-make foul-type-llm-harden           # Harden RS
-make foul-type-llm-harden-po        # Harden PO
-make foul-type-llm-giannis          # Giannis RS
-make foul-type-llm-giannis-po       # Giannis PO
-make foul-type-llm-validate-harden  # validate against manual ground truth
+# Vertex AI — event-ordering sequence prompt (best accuracy, recommended)
+make foul-type-vertex-sequence-validate-harden   # validate against ground truth
+make foul-type-vertex-sequence-harden            # grade all clips
 
-# Vertex AI (uses gcloud ADC — no API key needed)
-make foul-type-vertex-harden           # Harden RS via Vertex
-make foul-type-vertex-harden-po        # Harden PO via Vertex
-make foul-type-vertex-giannis          # Giannis RS via Vertex
-make foul-type-vertex-giannis-po       # Giannis PO via Vertex
-make foul-type-vertex-validate-harden  # validate against manual ground truth
+# Vertex AI — 3-field observation prompt (default)
+make foul-type-vertex-validate-harden
+make foul-type-vertex-harden
+
+# Vertex AI — direct-timing prompt (baseline)
+make foul-type-vertex-direct-validate-harden
+
+# Vertex AI — 3-field + few-shot video examples
+make foul-type-vertex-fewshot-validate-harden
+
+# Gemini API (requires GEMINI_API_KEY or GOOGLE_API_KEY)
+make foul-type-llm-harden
+make foul-type-llm-validate-harden
+
+# Vertex AI — cost-optimized (gemini-3.1-flash-lite; use after validate-only passes)
+make foul-type-vertex-lite-harden
 ```
 
 Or `make all` after scrape (screens A–C + visualize).
@@ -135,7 +142,13 @@ The project has found a strong descriptive predictor (FTA shift, r = −0.53) bu
 Two tools now support this:
 
 1. **Manual classifier** (`src/foul_type_classifier.py`) — keyboard-driven HTML tool for human review of video clips
-2. **LLM grader** (`src/foul_type_llm_grader.py`) — automated timing classification (BEFORE/DURING/AFTER) via multimodal LLMs. Supports Gemini (native video), OpenAI (GPT-5.4-mini, frame-based), Anthropic (Claude Sonnet 4.6, frame-based), and Vertex AI (gcloud ADC, no API key needed).
+2. **LLM grader** (`src/foul_type_llm_grader.py`) — automated timing classification (BEFORE/DURING/AFTER) via multimodal LLMs. Supports four prompt modes:
+   - **Event-ordering sequence** (`--sequence`) — model identifies observable events (defender reach, feet set, arm extend, ball release) and their temporal order. Best accuracy (71% binary, 50% 3-way).
+   - **3-field observation** (default) — model reports who initiated, ball state, arm geometry. Phase derived from observations.
+   - **Direct-timing** (`--direct-timing`) — model outputs BEFORE/DURING/AFTER directly with justification.
+   - **Legacy 13-field** (`--legacy-prompt`) — original observation schema (retained for backward compatibility).
+   
+   Four providers: Gemini (native video), OpenAI (GPT-5.4-mini, frame-based), Anthropic (Claude Sonnet 4.6, frame-based), and Vertex AI (gcloud ADC, no API key needed).
 
 See [`foul_type_classifier_plan.md`](documents/development/foul_type_classifier_plan.md) for the full build spec.
 

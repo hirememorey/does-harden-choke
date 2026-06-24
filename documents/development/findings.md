@@ -1005,3 +1005,54 @@ The missing variable is **foul type**: what kind of contact action generates the
 |------|-------------|
 | `data/processed/fta_collapse_profiles.csv` | Per-player FGA/FTA collapse in PO floor games |
 | `output/figures/fta_dependency_deepdive.{png,svg}` | 4-panel figure: scatter + bootstrap + co-collapse + FTA share |
+
+---
+
+## Phase F: LLM Video Grader — Prompt Engineering Validation (June 23, 2026)
+
+### Summary
+
+The LLM video grader (`src/foul_type_llm_grader.py`) automates timing classification (BEFORE/DURING/AFTER) of shooting fouls from video clips. The original 13-field observation prompt produced degenerate output — all 20 validation clips classified as DURING with identical observation vectors. A prompt engineering iteration tested four modes and identified the event-ordering sequence approach as the best design.
+
+### The problem: degenerate output collapse
+
+The original prompt asked the model to answer 13 interdependent observation questions (shooter_initiates_contact, hook_or_bar_arm, both_hands_on_vertical_arc, ball_location_at_contact, arm_direction_at_contact, shooter_body_state, etc.) with cross-reference rules ("hook_or_bar_arm=true → arm_direction must be HORIZONTAL_OUT"). The model produced identical observations for all 20 clips: `shooter_initiates=false, defender_swiped=true, hook=false, vertical_arc=true, ball=ABOVE_SHOULDER, arm=UPWARD_SHOT_ARC, body=SHOT_RELEASE`. Binary phase accuracy: 40% (worse than always-guessing-IN_ACT at the base rate).
+
+**Root causes:**
+1. `thinkingBudget: 0` disabled the model's reasoning (Gemini 3.5 Flash is a reasoning model)
+2. 13-field schema with cross-reference rules caused cognitive overload → pattern-matching to the most complete-looking observation set
+3. Freeze-frame state classification ("is the ball on the release path?") is harder than temporal event ordering — the model can't distinguish "rising to shoot" from "on the release path" at a single frame
+
+### Prompt mode comparison (Harden, 20 clips, Vertex AI gemini-3.5-flash)
+
+| Mode | How it works | Binary accuracy | 3-way accuracy | BEFORE recall | DURING recall |
+|------|-------------|-----------------|-----------------|---------------|---------------|
+| Legacy 13-field | 13 interdependent observations + cross-reference rules | 40% (6/15) | 0% | 0/11 (0%) | 0/6 (0%) |
+| 3-field observation | Collapsed schema: who_initiated, ball_state, arm_geometry | 50% (7/14) | 25% | 2/11 (18%) | 3/6 (50%) |
+| **Event-ordering sequence** | Model identifies observable events and their temporal order | **71% (12/17)** | **50%** | **7/11 (64%)** | 3/6 (50%) |
+
+### The event-ordering sequence approach
+
+The sequence prompt asks the model to:
+1. **Narrate** the clip chronologically (2-3 sentences)
+2. **Identify observable events** and report which came first: DEFENDER_REACH, FEET_SET, ARM_EXTEND, BALL_RELEASED, CONTACT
+3. **Classify timing** based on event ordering: BEFORE = contact before ARM_EXTEND; DURING = contact after ARM_EXTEND but before BALL_RELEASED; AFTER = contact after BALL_RELEASED
+
+The key insight: the BEFORE/DURING boundary is a **temporal ordering** question (did contact happen before or after the arm started extending?), not a **state classification** question (is the ball on the release path at the freeze frame?). The model can sequence events from video more reliably than it can classify a freeze-frame state, because each event is independently observable ("are the feet set?" "has the arm started extending?") rather than requiring a counterfactual judgment about shot commitment.
+
+### Remaining errors
+
+The 5 binary mismatches in the sequence run are genuine BEFORE/DURING boundary calls where the ARM_EXTEND timing is ambiguous — the model and ground truth disagree on whether the shooting arm had started extending at the frame of contact. The 2 AFTER→DURING errors suggest the model still can't reliably detect ball release, a smaller and more tractable problem than the BEFORE/DURING collapse.
+
+### Scripts
+
+| Script | Component |
+|--------|-----------|
+| `src/foul_type_llm_grader.py` | LLM video grader with four prompt modes (legacy, observation, direct, sequence) and four providers (Gemini, OpenAI, Anthropic, Vertex AI) |
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `data/processed/foul_type_llm_results_{player_slug}.json` | Per-clip timing predictions with observation fields, confidence, and reasoning |
+| `foul_type_classifications.csv` | Manual ground truth (human-classified timing labels) |

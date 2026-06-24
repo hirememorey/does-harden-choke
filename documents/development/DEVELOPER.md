@@ -1,6 +1,6 @@
 # Developer Onboarding
 
-**Last updated:** June 23, 2026 (LLM video grader built with Vertex AI support; `foul_type_llm_grader.py` supports Gemini, OpenAI, Anthropic, and Vertex providers)
+**Last updated:** June 23, 2026 (LLM video grader rewritten with four prompt modes: legacy 13-field, 3-field observation, direct-timing, event-ordering sequence; sequence prompt achieves 71% binary accuracy on Harden validation set)
 
 This guide gets a new contributor from clone to running analyses to understanding what is settled vs. open. Read this first, then [`findings.md`](findings.md) for results and [`open_questions.md`](open_questions.md) for what's next.
 
@@ -201,17 +201,28 @@ make foul-type-serve     # start local server
 # Open http://localhost:8080/foul_type_classifier_giannis_antetokounmpo.html
 ```
 
-### LLM video grader (built June 23, 2026)
+### LLM video grader (built June 23, 2026; prompt modes added June 23, 2026)
 
 Automated timing classification (BEFORE/DURING/AFTER) of shooting fouls from video clips using multimodal LLMs. Supplements the manual classifier by grading the timing axis automatically.
 
 **Script:** `src/foul_type_llm_grader.py`
 
+**Prompt modes:**
+
+| Mode | Flag | How it works | Binary accuracy | 3-way accuracy |
+|------|------|-------------|-----------------|----------------|
+| **Event-ordering sequence** | `--sequence` | Model identifies observable events (defender reach, feet set, arm extend, ball release) and reports their temporal order relative to contact. Includes a narrative step for temporal reasoning. | **71%** | **50%** |
+| 3-field observation | (default) | Model reports 3 observations (who initiated, ball state, arm geometry); phase derived deterministically. | 50% | 25% |
+| Direct-timing | `--direct-timing` | Model outputs BEFORE/DURING/AFTER directly with one-sentence justification. | — | — |
+| Legacy 13-field | `--legacy-prompt` | Original 13-field observation schema with cross-reference rules. | 40% | 0% |
+
+The sequence prompt was designed to fix the core failure mode: the model couldn't distinguish "rising to shoot" from "on the release path" at a single freeze frame. By asking the model to sequence observable events (when does the arm start extending? when does contact occur?) rather than classify a freeze-frame state, the BEFORE/DURING boundary becomes a temporal ordering check instead of a counterfactual judgment about shot commitment.
+
 **Providers:**
 
 | Provider | Model | Auth | Video handling |
 |----------|-------|------|---------------|
-| **Vertex AI** (recommended) | `gemini-2.5-flash` | gcloud ADC (no API key) | Native video upload via GCS |
+| **Vertex AI** (recommended) | `gemini-3.5-flash` | gcloud ADC (no API key) | Native video upload via GCS |
 | Gemini | `gemini-2.5-flash` | `GEMINI_API_KEY` env var | Native video upload |
 | OpenAI | `gpt-5.4-mini` | `OPENAI_API_KEY` env var | Frame extraction (3fps, 15 frames) |
 | Anthropic | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` env var | Frame extraction (2fps, 10 frames) |
@@ -224,9 +235,19 @@ Automated timing classification (BEFORE/DURING/AFTER) of shooting fouls from vid
 
 **Run the LLM grader:**
 ```bash
-# Vertex AI (recommended — no API key needed)
-make foul-type-vertex-harden           # Harden RS
-make foul-type-vertex-validate-harden  # validate against manual ground truth
+# Vertex AI — event-ordering sequence prompt (recommended — best accuracy)
+make foul-type-vertex-sequence-validate-harden  # validate against manual ground truth
+make foul-type-vertex-sequence-harden           # grade all clips
+
+# Vertex AI — 3-field observation prompt (default)
+make foul-type-vertex-validate-harden
+make foul-type-vertex-harden
+
+# Vertex AI — direct-timing prompt (baseline)
+make foul-type-vertex-direct-validate-harden
+
+# Vertex AI — 3-field + few-shot video examples
+make foul-type-vertex-fewshot-validate-harden
 
 # Gemini API (requires GEMINI_API_KEY)
 make foul-type-llm-harden
@@ -236,13 +257,15 @@ PYTHONPATH=. .venv/bin/python src/foul_type_llm_grader.py --player "James Harden
 PYTHONPATH=. .venv/bin/python src/foul_type_llm_grader.py --player "James Harden" --provider "anthropic" --model "claude-sonnet-4-6"
 ```
 
-**Output:** `data/processed/foul_type_llm_results_{player_slug}.json` — per-clip timing predictions with confidence and reasoning, plus validation analytics against manual ground truth when available.
+**Output:** `data/processed/foul_type_llm_results_{player_slug}.json` — per-clip timing predictions with confidence, reasoning, and all observation fields, plus validation analytics against manual ground truth when available.
 
 **Key technical notes:**
 - The LLM grader currently classifies only the **timing** axis (BEFORE/DURING/AFTER). Mechanism, body part, severity, and location still require the manual classifier HTML tool.
 - Gemini/Vertex use native video upload (best temporal precision). OpenAI and Anthropic use extracted frames (lower temporal resolution).
 - `--validate-only` restricts grading to clips with manual ground truth in `foul_type_classifications.csv` for accuracy benchmarking.
 - `--limit N` caps grading to the first N clips (useful for cost control and testing).
+- `--few-shot` includes 2-3 labeled video clips from ground truth as examples in the prompt (Gemini/Vertex only — uploads additional videos to GCS/Files API).
+- Thinking is enabled for Vertex AI (Gemini 3.5 Flash is a reasoning model; `thinkingBudget` is not set, allowing the model to reason about event ordering). `maxOutputTokens` is set to 8192 to accommodate thinking + JSON output.
 
 **Key technical notes:**
 - `videoeventsasset` API (NOT `videodetailsasset`, which returns 500) returns direct MP4 URLs

@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-harden-po foul-type-scrape-giannis foul-type-scrape-giannis-po foul-type-classify-harden foul-type-classify-giannis foul-type-llm-validate-harden foul-type-llm-harden foul-type-llm-harden-po foul-type-llm-giannis foul-type-llm-giannis-po foul-type-vertex-validate-harden foul-type-vertex-harden foul-type-vertex-harden-po foul-type-vertex-giannis foul-type-vertex-giannis-po foul-type-alpha foul-type-serve
+.PHONY: venv scrape validate-scrape scrape-pbp build-possessions validate-possessions features screen-a screen-a-adj screen-e screen-f retention screen-b screen-c visualize all clean test-client smoke-scrape event-frequency trigger-sensitivity join-causal mechanism-descriptives mechanism-models causal-chain architecture-model scrape-shot-charts validate-shot-charts shot-chart-features rq-model fta-deepdive foul-type-scrape-harden foul-type-scrape-harden-po foul-type-scrape-giannis foul-type-scrape-giannis-po foul-type-classify-harden foul-type-classify-giannis foul-type-llm-validate-harden foul-type-llm-harden foul-type-llm-harden-po foul-type-llm-giannis foul-type-llm-giannis-po foul-type-vertex-validate-harden foul-type-vertex-harden foul-type-vertex-harden-po foul-type-vertex-giannis foul-type-vertex-giannis-po foul-type-vertex-lite-validate-harden foul-type-vertex-lite-harden foul-type-vertex-lite-harden-po foul-type-vertex-lite-giannis foul-type-vertex-lite-giannis-po foul-type-vertex-direct-validate-harden foul-type-vertex-direct-harden foul-type-vertex-fewshot-validate-harden foul-type-vertex-fewshot-harden foul-type-vertex-sequence-validate-harden foul-type-vertex-sequence-harden foul-type-alpha foul-type-serve
 
 venv:
 	python3 -m venv .venv
@@ -137,19 +137,35 @@ foul-type-llm-giannis-po:
 
 # Vertex AI grading (uses gcloud ADC — no API key needed)
 foul-type-vertex-validate-harden:
-	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash" --validate-only
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --validate-only
 
 foul-type-vertex-harden:
-	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash"
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash"
 
 foul-type-vertex-harden-po:
-	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-2.5-flash" --season-type Playoffs
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --season-type Playoffs
 
 foul-type-vertex-giannis:
-	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-2.5-flash"
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-3.5-flash"
 
 foul-type-vertex-giannis-po:
-	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-2.5-flash" --season-type Playoffs
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-3.5-flash" --season-type Playoffs
+
+# Vertex AI grading — cost-optimized (gemini-3.1-flash-lite; use after validate-only passes)
+foul-type-vertex-lite-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.1-flash-lite" --validate-only
+
+foul-type-vertex-lite-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.1-flash-lite"
+
+foul-type-vertex-lite-harden-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.1-flash-lite" --season-type Playoffs
+
+foul-type-vertex-lite-giannis:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-3.1-flash-lite"
+
+foul-type-vertex-lite-giannis-po:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "Giannis Antetokounmpo" --provider "vertex" --model "gemini-3.1-flash-lite" --season-type Playoffs
 
 foul-type-alpha: foul-type-scrape-harden foul-type-scrape-giannis foul-type-classify-harden foul-type-classify-giannis
 	@echo ""
@@ -157,6 +173,27 @@ foul-type-alpha: foul-type-scrape-harden foul-type-scrape-giannis foul-type-clas
 	@echo "  make foul-type-serve"
 	@echo "  Then open http://localhost:8080/foul_type_classifier_james_harden.html"
 	@echo "  and   http://localhost:8080/foul_type_classifier_giannis_antetokounmpo.html"
+
+# Vertex AI grading — direct-timing prompt (model outputs BEFORE/DURING/AFTER directly)
+foul-type-vertex-direct-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --direct-timing --validate-only
+
+foul-type-vertex-direct-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --direct-timing
+
+# Vertex AI grading — 3-field observation prompt + few-shot video examples
+foul-type-vertex-fewshot-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --few-shot --validate-only
+
+foul-type-vertex-fewshot-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --few-shot
+
+# Vertex AI grading — event-ordering sequence prompt
+foul-type-vertex-sequence-validate-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --sequence --validate-only
+
+foul-type-vertex-sequence-harden:
+	PYTHONPATH=. $(PYTHON) src/foul_type_llm_grader.py --player "James Harden" --provider "vertex" --model "gemini-3.5-flash" --sequence
 
 foul-type-serve:
 	@echo "Serving classifier at http://localhost:8080/"
