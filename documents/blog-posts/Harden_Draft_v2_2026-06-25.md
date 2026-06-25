@@ -30,7 +30,7 @@ The "choking" narrative is a misdiagnosis. People remember the bad Game 7s and f
 
 ## The opponent isn't driving the bad games
 
-This is where it comes together. I split every player's bad games by opponent quality. Do they collapse against elite defenses, or only against bad ones? Most players show a clear pattern. Jimmy Butler floors 25% of the time against strong defenses but just 2% against weak ones. His bad games cluster when elite defenses take him out of his game.
+This is where it comes together. I split every player's bad games by opponent quality. Do they collapse against elite defenses, or only against bad ones? Most players show a clear pattern. Jimmy Butler floors 19% of the time against weak defenses but just 2% against elite ones. Tyrese Haliburton is even more extreme: 21% against weak defenses, 0% against strong ones. Their bad games appear to be engagement-related. If it's not an important game, they're coasting.
 
 Harden floors at the same rate against elite defenses as bad ones. Across his entire career he floors over 20% of the time against elite defensive opponents and [x]% against bad ones. He's one of only two players in the cohort (the other is Damian Lillard) who floors more than 20% against elite defenses in both halves of their career.[^4]
 
