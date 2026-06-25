@@ -9,7 +9,7 @@
 - Across 31 Hall-of-Fame-caliber players and ~31,000 games, "choking" in the sense of bad games clustering in high-leverage moments does not survive the data. Harden's elimination-game floor rate (15%) is lower than his non-elimination playoff rate (23%).
 - The "playoff whistle" is not a league-wide effect. 15 of 31 players increase their free throw rate in the playoffs. The cohort mean shift is −0.05 FTA/36. That's noise.
 - Harden's failure mode is structural, not psychological. He has a two-mode scoring architecture (threes and free throws) and when both go cold in the same game, there's no third mode to fall back on. The FTA shift finding (r = −0.528, p = 0.002) proves this vulnerability is real and measurable across the league. The two-mode architecture explains why it's load-bearing for Harden specifically.
-- Harden floors at a high rate against both elite and weak defenses. Only Damian Lillard shares this pattern at comparable magnitude. Most stars show a clear opponent gradient. Butler floors 19% vs weak D and 2% vs elite D. Haliburton is 21% vs weak, 0% vs strong. Their bad games are engagement- or scheme-driven. Harden's aren't.
+- Harden floors at a high rate against both elite and weak defenses. Only Damian Lillard shares this pattern at comparable magnitude. Most stars show a clear opponent gradient. Butler floors 25% vs strong D and 2% vs weak D. Their bad games are scheme-driven. Harden's aren't.
 - The same structural pattern that produces his bad games in May produces them in January. The playoffs don't create a new failure mode. They give us a bigger stage to watch the one that was always there.
 
 ---
@@ -147,13 +147,11 @@ I split every player's bad games by opponent defensive quality. Most players sho
 
 | Player | Floor rate vs weak D | Floor rate vs strong D | Interpretation |
 |---|---|---|---|
-| Jimmy Butler | 19% | 2% | Engagement-driven. Coasts vs weak, locks in vs elite. |
-| Tyrese Haliburton | 21% | 0% | Extreme engagement gradient. |
-| SGA | 35% | 0% | Scheme-dependent. Elite defenses take away driving lanes. |
-| **Harden** | **32%** | **20%** | **No clear opponent pattern. Floors against everyone.** |
-| **Lillard** | **24%** | **29%** | **No clear opponent pattern. Floors against everyone.** |
+| Jimmy Butler | 2% | 25% | Scheme-dependent. Elite defenses can take him out of his game. |
+| **Harden** | **20%** | **32%** | **No clear opponent pattern. Floors against everyone.** |
+| **Lillard** | **23%** | **24%** | **No clear opponent pattern. Floors against everyone.** |
 
-Butler, Haliburton, and SGA have manageable failure modes. A coach can keep Butler engaged, scheme easier looks for SGA, or accept that Haliburton will coast in low-stakes games. The trigger is identifiable and conditional.
+Butler has a manageable failure mode. His floor games cluster against strong defenses, which means a coach can scheme easier looks or accept the tradeoff. The trigger is identifiable and conditional.
 
 Harden and Lillard don't have a trigger in this sense. Their floor games don't cluster against a particular opponent type. They happen against elite defenses and weak defenses alike. You can't scheme away a failure mode that isn't caused by the opponent. When Harden's three isn't falling and he's not getting to the line, it doesn't matter who's guarding him.
 
@@ -224,7 +222,7 @@ These are independent dimensions. Butler has Harden's mechanism (contraction) wi
 
 ### For roster construction
 
-The opponent-independence finding has a direct roster implication. If your star's floor games are opponent-dependent (SGA, Butler), you can build a system that manages the trigger: keep them engaged, scheme easier looks, accept the tradeoff. If your star's floor games are opponent-independent (Harden, Lillard), you cannot scheme away the risk. The only mitigation is roster redundancy: a second creator who can absorb possessions when the primary's architecture collapses. The 2023 Sixers, who asked Harden to be the co-primary with Embiid and had no tertiary creation, were structurally exposed to exactly the failure mode that materialized in Game 7.
+The opponent-independence finding has a direct roster implication. If your star's floor games are opponent-dependent (Butler), you can build a system that manages the trigger: scheme easier looks, accept the tradeoff. If your star's floor games are opponent-independent (Harden, Lillard), you cannot scheme away the risk. The only mitigation is roster redundancy: a second creator who can absorb possessions when the primary's architecture collapses. The 2023 Sixers, who asked Harden to be the co-primary with Embiid and had no tertiary creation, were structurally exposed to exactly the failure mode that materialized in Game 7.
 
 ### For the limits of box-score analytics
 
